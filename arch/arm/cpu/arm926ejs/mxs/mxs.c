@@ -175,6 +175,17 @@ const char *get_imx_type(u32 imxtype)
 	}
 }
 
+/* BEGIN: Added by wnavy, 2018/9/28 */
+int print_cpuclock(void)
+{
+    printf("CPU:   %3d MHz\n", mxc_get_clock(MXC_ARM_CLK) / 1000000);
+	printf("BUS:   %3d MHz\n", mxc_get_clock(MXC_AHB_CLK) / 1000000);
+	printf("EMI:   %3d MHz\n", mxc_get_clock(MXC_EMI_CLK));
+	printf("GPMI:  %3d MHz\n", mxc_get_clock(MXC_GPMI_CLK) / 1000000);
+	return 0;
+}
+/* END:   Added by wnavy, 2018/9/28 */
+
 int print_cpuinfo(void)
 {
 	u32 cpurev;
@@ -187,6 +198,9 @@ int print_cpuinfo(void)
 		(cpurev & 0x000F0) >> 4,
 		(cpurev & 0x0000F) >> 0,
 		mxc_get_clock(MXC_ARM_CLK) / 1000000);
+    /* BEGIN: Added by wnavy, 2018/9/28 */
+    print_cpuclock();
+    /* END:   Added by wnavy, 2018/9/28 */
 	printf("BOOT:  %s\n", mxs_boot_modes[data->boot_mode_idx].mode);
 	return 0;
 }
@@ -194,10 +208,16 @@ int print_cpuinfo(void)
 
 int do_mx28_showclocks(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 {
+    /* BEGIN: Modified by wnavy, 2018/9/28 */
+    #if 0
 	printf("CPU:   %3d MHz\n", mxc_get_clock(MXC_ARM_CLK) / 1000000);
 	printf("BUS:   %3d MHz\n", mxc_get_clock(MXC_AHB_CLK) / 1000000);
 	printf("EMI:   %3d MHz\n", mxc_get_clock(MXC_EMI_CLK));
 	printf("GPMI:  %3d MHz\n", mxc_get_clock(MXC_GPMI_CLK) / 1000000);
+    #else
+    print_cpuclock();
+    #endif
+    /* END:   Modified by wnavy, 2018/9/28 */
 	return 0;
 }
 

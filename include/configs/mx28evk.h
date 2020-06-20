@@ -15,10 +15,17 @@
 #define CONFIG_MX28				/* i.MX28 SoC */
 #define CONFIG_MACH_TYPE	MACH_TYPE_MX28EVK
 
+/* BEGIN: Added by wnavy, 2018/9/28 */
+/*#define DEBUG*/
+#define CONFIG_SYS_ICACHE_OFF  /*Do not enable instruction cache in U-Boot*/
+#define CONFIG_SYS_DCACHE_OFF  /*Do not enable data cache in U-Boot*/
+/*#define CONFIG_SYS_L2CACHE_OFF*/ /*Do not enable L2 cache in U-Boot*/
+/* END:   Added by wnavy, 2018/9/28 */
+
 /* Memory configuration */
 #define CONFIG_NR_DRAM_BANKS		1		/* 1 bank of DRAM */
 #define PHYS_SDRAM_1			0x40000000	/* Base address */
-#define PHYS_SDRAM_1_SIZE		0x40000000	/* Max 1 GB RAM */
+#define PHYS_SDRAM_1_SIZE		0x08000000	/* Max 1 GB RAM */
 #define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM_1
 
 /* Environment */
@@ -31,7 +38,14 @@
 
 /* Environment is in MMC */
 #if defined(CONFIG_CMD_MMC) && defined(CONFIG_ENV_IS_IN_MMC)
-#define CONFIG_ENV_OFFSET		(256 * 1024)
+/* BEGIN: Modified by wnavy, 2018/9/28 */
+/*#define CONFIG_ENV_OFFSET		(256 * 1024)*/
+#define CONFIG_ENV_OFFSET		(1 * 1024) /*1KB*/
+#ifdef CONFIG_ENV_SIZE
+#undef CONFIG_ENV_SIZE
+#define CONFIG_ENV_SIZE         (127 * 1024) /*127KB*/
+#endif
+/* END:   Modified by wnavy, 2018/9/28 */
 #define CONFIG_SYS_MMC_ENV_DEV		0
 #endif
 
@@ -67,6 +81,12 @@
 #ifdef	CONFIG_CMD_NET
 #define CONFIG_FEC_MXC
 #define CONFIG_MX28_FEC_MAC_IN_OCOTP
+/* BEGIN: Added by wnavy, 2018/9/28 */
+#define CONFIG_IPADDR           192.168.1.101
+#define CONFIG_SERVERIP         192.168.1.100
+#define CONFIG_GATEWAYIP        192.168.1.1
+#define CONFIG_NETMASK          255.255.255.0
+/* END:   Added by wnavy, 2018/9/28 */
 #endif
 
 /* RTC */
@@ -108,10 +128,16 @@
 
 /* Boot Linux */
 #define CONFIG_BOOTFILE		"uImage"
+#if 0
 #define CONFIG_LOADADDR		0x42000000
+#else
+#define CONFIG_LOADADDR		0x41600000
+#endif
 #define CONFIG_SYS_LOAD_ADDR	CONFIG_LOADADDR
 
 /* Extra Environment */
+/* BEGIN: Modified by wnavy, 2018/9/28 */
+#if 0
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"ubifs_file=filesystem.ubifs\0" \
 	"update_nand_full_filename=u-boot.nand\0" \
@@ -270,6 +296,55 @@
 			"fi; " \
 		"fi; " \
 	"else run netboot; fi"
+#else
+#define CONFIG_EXTRA_ENV_SETTINGS \
+    "kernel=uImage\0"                                                                           \
+    "kernelsize=0x300000\0"                                                                     \
+    "rootfs=rootfs.ubifs\0"                                                                     \
+    "kerneladdr=0x00200000\0"                                                                   \
+    "nfsroot=/home/notroot/nfs/rootfs\0"                                                        \
+    "bootargs_nfs=setenv bootargs ${bootargs} root=/dev/nfs "                                   \
+        "ip=dhcp nfsroot=${serverip}:${nfsroot},v3,tcp "                                        \
+        "fec_mac=${ethaddr}\0"                                                                  \
+    "bootcmd_net=run bootargs_nfs; dhcp; bootm\0"                                               \
+    "bootcmd_mmc=run bootargs_mmc; "                                                            \
+        "mmc read 0 ${loadaddr} 100 3000; bootm\0"                                              \
+    "bootargs_nand=gpmi=g console=ttyAM0,115200n8 console=tty0 ubi.mtd=1 "                      \
+        "root=ubi0:rootfs rootfstype=ubifs "                                                    \
+        "ip=192.168.1.101:192.168.1.100:192.68.1.1:255.255.255.0::eht0: "                     \
+        "fec_mac= ethact \0          "                                                          \
+    "bootargs_mmc=gpmi=g console=ttyAM0,115200n8 console=tty0 root=/dev/mmcblk0p3 "             \
+        "rw ip=192.168.1.101:192.168.1.100:192.68.1.1:255.255.255.0::eht0: "                  \
+        "fec_mac= ethact console=tty0 root=/dev/mmcblk0p3 rw "                                  \
+        "ip=192.168.1.101:192.168.1.100:192.168.1.1:255.255.255.0::eht0: "                    \
+        "fec_mac= console=tty0  \0"                                                             \
+    "bootargs_sdcard=gpmi=g console=ttyAM0,115200n8 root=/dev/mmcblk0p3 "                       \
+        "rw rootwait rootfstype=ext2 init=/sbin/init fec_mac= ethact mem=64M\0"                 \
+    "bootargs=gpmi=g console=ttyAM0,115200n8 root=/dev/mmcblk0p3 "                              \
+        "rw rootwait rootfstype=ext2 init=/sbin/init fec_mac= ethact mem=64M\0"                 \
+    "upuboot=tftp ${loadaddr} ${serverip}:imx28_ivt_uboot.sb;nand erase 0x0 0x100000; "         \
+        "nand write ${loadaddr} 0x0 0x100000\0"                                                 \
+    "upkernel="     "tftp ${loadaddr} ${serverip}:${kernel};"                                   \
+                    "nand erase  ${kerneladdr} ${kernelsize};"                                  \
+                    "nand write ${loadaddr} ${kerneladdr} ${kernelsize};\0"                     \
+                    "setenv kernelsize ${filesize}; saveenv\0"                                  \
+    "uprootfs="     "mtdparts default;"                                                         \
+                    "nand erase rootfs;"                                                        \
+                    "ubi part rootfs;"                                                          \
+                    "ubi create  rootfs;"                                                       \
+                    "tftp $(loadaddr) ${rootfs};"                                               \
+                    "ubi write ${loadaddr} rootfs ${filesize}\0"                                \
+    "tftp_boot=tftp ${loadaddr} ${serverip}:uImage; bootm;\0"                                   \
+    "nand_boot=nand read.jffs2 ${loadaddr} ${kerneladdr} ${kernelsize};"                        \
+        "bootm ${loadaddr}\0"                                                                   \
+    "sdcard_boot=fatload mmc 0:1 ${loadaddr} uImage;bootm\0"                                    \
+    "setnandboot=setenv bootcmd 'run  nand_boot';saveenv \0"                                    \
+    "settftpboot=setenv bootcmd 'run  tftp_boot';saveenv \0"                                    \
+    "upsystem=run upkernel;run uprootfs;reset \0"
+
+#define CONFIG_BOOTCOMMAND "run sdcard_boot"
+#endif
+/* END:   Modified by wnavy, 2018/9/28 */
 
 /* The rest of the configuration is shared */
 #include <configs/mxs.h>

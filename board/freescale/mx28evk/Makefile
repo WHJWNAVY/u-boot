@@ -6,7 +6,7 @@
 #
 
 ifndef	CONFIG_SPL_BUILD
-obj-y	:= mx28evk.o
+obj-y	:= mx28evk.o mx28evk_init.o
 else
 obj-y	:= iomux.o
 endif
