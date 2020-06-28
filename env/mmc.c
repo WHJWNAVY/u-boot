@@ -217,7 +217,7 @@ static int env_mmc_save(void)
 		goto fini;
 	}
 
-	printf("Writing to %sMMC(%d)... ", copy ? "redundant " : "", dev);
+	printf("Writing to %sMMC(%d), at[0x%08X]... ", copy ? "redundant " : "", dev, offset);
 	if (write_env(mmc, CONFIG_ENV_SIZE, offset, (u_char *)env_new)) {
 		puts("failed\n");
 		ret = 1;

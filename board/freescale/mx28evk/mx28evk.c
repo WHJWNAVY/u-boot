@@ -26,6 +26,10 @@
 #include <netdev.h>
 #include <errno.h>
 
+#ifdef CONFIG_MACH_TYPE
+#include <asm/mach-types.h>
+#endif
+
 DECLARE_GLOBAL_DATA_PTR;
 
 /*
@@ -66,6 +70,9 @@ int dram_init(void)
 
 int board_init(void)
 {
+#ifdef CONFIG_MACH_TYPE
+	gd->bd->bi_arch_number = CONFIG_MACH_TYPE; /* board id for Linux */
+#endif
 	/* Adress of boot parameters */
 	gd->bd->bi_boot_params = PHYS_SDRAM_1 + 0x100;
 
@@ -80,13 +87,21 @@ static int mx28evk_mmc_wp(int id)
 		return 1;
 	}
 
+	#ifdef CONFIG_EASYARM_280A
+    return gpio_get_value(MX28_PAD_GPMI_CE1N__GPIO_0_17);
+	#else
 	return gpio_get_value(MX28_PAD_SSP1_SCK__GPIO_2_12);
+	#endif
 }
 
 int board_mmc_init(bd_t *bis)
 {
 	/* Configure WP as input */
+    #ifdef CONFIG_EASYARM_280A
+    gpio_direction_input(MX28_PAD_GPMI_CE1N__GPIO_0_17);
+    #else
 	gpio_direction_input(MX28_PAD_SSP1_SCK__GPIO_2_12);
+    #endif
 
 	/* Configure MMC0 Power Enable */
 	gpio_direction_output(MX28_PAD_PWM3__GPIO_3_28, 0);
@@ -126,11 +141,13 @@ int board_eth_init(bd_t *bis)
 		return ret;
 	}
 
+    #ifndef CONFIG_EASYARM_280A
 	ret = fecmxc_initialize_multi(bis, 1, 3, MXS_ENET1_BASE);
 	if (ret) {
 		puts("FEC MXS: Unable to init FEC1\n");
 		return ret;
 	}
+    #endif
 
 	dev = eth_get_dev_by_name("FEC0");
 	if (!dev) {
@@ -138,11 +155,13 @@ int board_eth_init(bd_t *bis)
 		return -EINVAL;
 	}
 
+    #ifndef CONFIG_EASYARM_280A
 	dev = eth_get_dev_by_name("FEC1");
 	if (!dev) {
 		puts("FEC MXS: Unable to get FEC1 device entry\n");
 		return -EINVAL;
 	}
+    #endif
 
 	return ret;
 }

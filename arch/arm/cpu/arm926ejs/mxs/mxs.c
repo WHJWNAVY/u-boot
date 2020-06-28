@@ -160,6 +160,15 @@ u32 get_cpu_rev(void)
 	}
 }
 
+int print_cpuclock(void)
+{
+	printf("CPU:   %3d MHz\n", mxc_get_clock(MXC_ARM_CLK) / 1000000);
+	printf("BUS:   %3d MHz\n", mxc_get_clock(MXC_AHB_CLK) / 1000000);
+	printf("EMI:   %3d MHz\n", mxc_get_clock(MXC_EMI_CLK));
+	printf("GPMI:  %3d MHz\n", mxc_get_clock(MXC_GPMI_CLK) / 1000000);
+	return 0;
+}
+
 #if defined(CONFIG_DISPLAY_CPUINFO)
 const char *get_imx_type(u32 imxtype)
 {
@@ -184,6 +193,7 @@ int print_cpuinfo(void)
 		(cpurev & 0x000F0) >> 4,
 		(cpurev & 0x0000F) >> 0,
 		mxc_get_clock(MXC_ARM_CLK) / 1000000);
+    print_cpuclock();
 	printf("BOOT:  %s\n", mxs_boot_modes[data->boot_mode_idx].mode);
 	return 0;
 }
@@ -192,11 +202,7 @@ int print_cpuinfo(void)
 int do_mx28_showclocks(struct cmd_tbl *cmdtp, int flag, int argc,
 		       char *const argv[])
 {
-	printf("CPU:   %3d MHz\n", mxc_get_clock(MXC_ARM_CLK) / 1000000);
-	printf("BUS:   %3d MHz\n", mxc_get_clock(MXC_AHB_CLK) / 1000000);
-	printf("EMI:   %3d MHz\n", mxc_get_clock(MXC_EMI_CLK));
-	printf("GPMI:  %3d MHz\n", mxc_get_clock(MXC_GPMI_CLK) / 1000000);
-	return 0;
+	return print_cpuclock();
 }
 
 /*

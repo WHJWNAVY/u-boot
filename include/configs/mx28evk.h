@@ -10,12 +10,18 @@
 #ifndef __CONFIGS_MX28EVK_H__
 #define __CONFIGS_MX28EVK_H__
 
+#define CONFIG_EASYARM_280A 1
+
 /* System configurations */
 #define CONFIG_MACH_TYPE	MACH_TYPE_MX28EVK
 
 /* Memory configuration */
 #define PHYS_SDRAM_1			0x40000000	/* Base address */
+#ifdef CONFIG_EASYARM_280A
+#define PHYS_SDRAM_1_SIZE		0x04000000	/* Max 64 MB RAM */
+#else
 #define PHYS_SDRAM_1_SIZE		0x40000000	/* Max 1 GB RAM */
+#endif
 #define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM_1
 
 /* Environment */
