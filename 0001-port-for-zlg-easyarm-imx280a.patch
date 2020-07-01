@@ -1,0 +1,2429 @@
+From bbb32d83a60fe5e17cd6b0b93082c2e9507ad0a3 Mon Sep 17 00:00:00 2001
+From: WHJWNAVY <navy@mercku.com>
+Date: Wed, 1 Jul 2020 23:05:40 +0800
+Subject: [PATCH] port for zlg easyarm imx280a
+
+---
+ arch/arm/Kconfig                            |   7 +
+ arch/arm/cpu/arm926ejs/mxs/spl_mem_init.c   |  12 +-
+ arch/arm/cpu/arm926ejs/mxs/spl_power_init.c |   4 +-
+ arch/arm/cpu/arm926ejs/mxs/u-boot-imx28.bd  |  12 +-
+ arch/arm/include/asm/mach-types.h           |   1 +
+ board/zlg/imx280a/Kconfig                   |  15 +
+ board/zlg/imx280a/MAINTAINERS               |   9 +
+ board/zlg/imx280a/Makefile                  |  12 +
+ board/zlg/imx280a/README                    |  62 ++
+ board/zlg/imx280a/imx280a.c                 | 142 ++++
+ board/zlg/imx280a/iomux.c                   | 131 +++
+ build.sh                                    |  19 +
+ configs/imx280a_defconfig                   | 844 ++++++++++++++++++++
+ configs/imx280a_mmc_defconfig               | 844 ++++++++++++++++++++
+ include/common.h                            |   2 +
+ include/configs/imx280a.h                   |  95 +++
+ include/configs/mxs.h                       |   4 +-
+ setenv.sh                                   |   7 +
+ 18 files changed, 2206 insertions(+), 16 deletions(-)
+ create mode 100644 board/zlg/imx280a/Kconfig
+ create mode 100644 board/zlg/imx280a/MAINTAINERS
+ create mode 100644 board/zlg/imx280a/Makefile
+ create mode 100644 board/zlg/imx280a/README
+ create mode 100644 board/zlg/imx280a/imx280a.c
+ create mode 100644 board/zlg/imx280a/iomux.c
+ create mode 100644 build.sh
+ create mode 100644 configs/imx280a_defconfig
+ create mode 100644 configs/imx280a_mmc_defconfig
+ create mode 100644 include/configs/imx280a.h
+ create mode 100644 setenv.sh
+
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 53eae8953e..5d9bcac936 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -384,6 +384,12 @@ config TARGET_MX28EVK
+ 	select SUPPORT_SPL
+ 	select BOARD_EARLY_INIT_F
+ 
++config TARGET_IMX280A
++	bool "Support imx280a"
++	select CPU_ARM926EJS
++	select SUPPORT_SPL
++	select BOARD_EARLY_INIT_F
++
+ config TARGET_MX23_OLINUXINO
+ 	bool "Support mx23_olinuxino"
+ 	select CPU_ARM926EJS
+@@ -1205,6 +1211,7 @@ source "board/freescale/ls1012afrdm/Kconfig"
+ source "board/freescale/mx23evk/Kconfig"
+ source "board/freescale/mx25pdk/Kconfig"
+ source "board/freescale/mx28evk/Kconfig"
++source "board/zlg/imx280a/Kconfig"
+ source "board/freescale/mx31ads/Kconfig"
+ source "board/freescale/mx31pdk/Kconfig"
+ source "board/freescale/mx35pdk/Kconfig"
+diff --git a/arch/arm/cpu/arm926ejs/mxs/spl_mem_init.c b/arch/arm/cpu/arm926ejs/mxs/spl_mem_init.c
+index a744e5d499..63bbb84841 100644
+--- a/arch/arm/cpu/arm926ejs/mxs/spl_mem_init.c
++++ b/arch/arm/cpu/arm926ejs/mxs/spl_mem_init.c
+@@ -28,11 +28,11 @@ static uint32_t dram_vals[] = {
+ 	0x00000000, 0x00000100, 0x00000000, 0x00000000,
+ 	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+ 	0x00000000, 0x00000000, 0x00010101, 0x01010101,
+-	0x000f0f01, 0x0f02020a, 0x00000000, 0x00010101,
++	0x000f0f01, 0x0102020a, 0x00000000, 0x00000101,
+ 	0x00000100, 0x00000100, 0x00000000, 0x00000002,
+-	0x01010000, 0x07080403, 0x06005003, 0x0a0000c8,
+-	0x02009c40, 0x0002030c, 0x0036a609, 0x031a0612,
+-	0x02030202, 0x00c8001c, 0x00000000, 0x00000000,
++	0x01010000, 0x07080403, 0x0a008603, 0x0e0000c8,
++	0x0201046b, 0x00020514, 0x005b260f, 0x05230a22,
++	0x03050304, 0x00c80027, 0x00000000, 0x00000000,
+ 	0x00012100, 0xffff0303, 0x00012100, 0xffff0303,
+ 	0x00012100, 0xffff0303, 0x00012100, 0xffff0303,
+ 	0x00000003, 0x00000000, 0x00000000, 0x00000000,
+@@ -62,10 +62,10 @@ static uint32_t dram_vals[] = {
+ 	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+ 	0x00000000, 0x00000000, 0x00000000, 0x00000000,
+ 	0x00000000, 0x00000000, 0x00010000, 0x00030404,
+-	0x00000003, 0x00000000, 0x00000000, 0x00000000,
++	0x00000002, 0x00000000, 0x00000000, 0x00000000,
+ 	0x00000000, 0x00000000, 0x00000000, 0x01010000,
+ 	0x01000000, 0x03030000, 0x00010303, 0x01020202,
+-	0x00000000, 0x02040303, 0x21002103, 0x00061200,
++	0x00000000, 0x02050303, 0x21002103, 0x00061200,
+ 	0x06120612, 0x04420442, 0x04420442, 0x00040004,
+ 	0x00040004, 0x00000000, 0x00000000, 0x00000000,
+ 	0x00000000, 0xffffffff
+diff --git a/arch/arm/cpu/arm926ejs/mxs/spl_power_init.c b/arch/arm/cpu/arm926ejs/mxs/spl_power_init.c
+index 1ec8e2b643..3461e6a7f7 100644
+--- a/arch/arm/cpu/arm926ejs/mxs/spl_power_init.c
++++ b/arch/arm/cpu/arm926ejs/mxs/spl_power_init.c
+@@ -751,7 +751,7 @@ static void mxs_batt_boot(void)
+ 		POWER_5VCTRL_CHARGE_4P2_ILIMIT_MASK,
+ 		0x8 << POWER_5VCTRL_CHARGE_4P2_ILIMIT_OFFSET);
+ 
+-	mxs_power_enable_4p2();
++	//mxs_power_enable_4p2();
+ }
+ 
+ /**
+@@ -1243,7 +1243,7 @@ void mxs_power_init(void)
+ 	mxs_ungate_power();
+ 
+ 	mxs_power_clock2xtal();
+-	mxs_power_set_auto_restart();
++	//mxs_power_set_auto_restart();
+ 	mxs_power_set_linreg();
+ 	mxs_power_setup_5v_detect();
+ 
+diff --git a/arch/arm/cpu/arm926ejs/mxs/u-boot-imx28.bd b/arch/arm/cpu/arm926ejs/mxs/u-boot-imx28.bd
+index c60615a456..891b5756a8 100644
+--- a/arch/arm/cpu/arm926ejs/mxs/u-boot-imx28.bd
++++ b/arch/arm/cpu/arm926ejs/mxs/u-boot-imx28.bd
+@@ -1,14 +1,14 @@
+ sources {
+-	u_boot_spl="spl/u-boot-spl.bin";
+-	u_boot="u-boot.bin";
++	u_boot_spl="spl/u-boot-spl";
++	u_boot="u-boot";
+ }
+ 
+ section (0) {
+-	load u_boot_spl > 0x0000;
+-	load ivt (entry = 0x0014) > 0x8000;
++	load u_boot_spl;
++	load ivt (entry = u_boot_spl:_start) > 0x8000;
+ 	hab call 0x8000;
+ 
+-	load u_boot > 0x40000100;
+-	load ivt (entry = 0x40000100) > 0x8000;
++	load u_boot;
++	load ivt (entry = u_boot:_start) > 0x8000;
+ 	hab call 0x8000;
+ }
+diff --git a/arch/arm/include/asm/mach-types.h b/arch/arm/include/asm/mach-types.h
+index 9f82efe007..5893ad1ab1 100644
+--- a/arch/arm/include/asm/mach-types.h
++++ b/arch/arm/include/asm/mach-types.h
+@@ -5057,4 +5057,5 @@
+ #define MACH_TYPE_NASM25               5112
+ #define MACH_TYPE_TOMATO               5113
+ #define MACH_TYPE_OMAP3_MRC3D          5114
++#define MACH_TYPE_IMX280A              5115
+ #endif
+diff --git a/board/zlg/imx280a/Kconfig b/board/zlg/imx280a/Kconfig
+new file mode 100644
+index 0000000000..2a5bde6163
+--- /dev/null
++++ b/board/zlg/imx280a/Kconfig
+@@ -0,0 +1,15 @@
++if TARGET_IMX280A
++
++config SYS_BOARD
++	default "imx280a"
++
++config SYS_VENDOR
++	default "zlg"
++
++config SYS_SOC
++	default "mxs"
++
++config SYS_CONFIG_NAME
++	default "imx280a"
++
++endif
+diff --git a/board/zlg/imx280a/MAINTAINERS b/board/zlg/imx280a/MAINTAINERS
+new file mode 100644
+index 0000000000..a98a70558a
+--- /dev/null
++++ b/board/zlg/imx280a/MAINTAINERS
+@@ -0,0 +1,9 @@
++MX28EVK BOARD
++M:	Fabio Estevam <fabio.estevam@nxp.com>
++S:	Maintained
++F:	board/freescale/mx28evk/
++F:	include/configs/mx28evk.h
++F:	configs/mx28evk_defconfig
++F:	configs/mx28evk_auart_console_defconfig
++F:	configs/mx28evk_nand_defconfig
++F:	configs/mx28evk_spi_defconfig
+diff --git a/board/zlg/imx280a/Makefile b/board/zlg/imx280a/Makefile
+new file mode 100644
+index 0000000000..b29e970ec1
+--- /dev/null
++++ b/board/zlg/imx280a/Makefile
+@@ -0,0 +1,12 @@
++#
++# (C) Copyright 2000-2006
++# Wolfgang Denk, DENX Software Engineering, wd@denx.de.
++#
++# SPDX-License-Identifier:	GPL-2.0+
++#
++
++ifndef	CONFIG_SPL_BUILD
++obj-y	:= imx280a.o
++else
++obj-y	:= iomux.o
++endif
+diff --git a/board/zlg/imx280a/README b/board/zlg/imx280a/README
+new file mode 100644
+index 0000000000..b8bee8931c
+--- /dev/null
++++ b/board/zlg/imx280a/README
+@@ -0,0 +1,62 @@
++FREESCALE MX28EVK
++==================
++
++Supported hardware: MX28EVK rev C and D are supported in U-Boot.
++
++Files of the MX28EVK port
++--------------------------
++
++arch/arm/cpu/arm926ejs/mxs/	- The CPU support code for the Freescale i.MX28
++arch/arm/include/asm/arch-mxs/	- Header files for the Freescale i.MX28
++board/freescale/mx28evk/	- MX28EVK board specific files
++include/configs/mx28evk.h	- MX28EVK configuration file
++
++Jumper configuration
++---------------------
++
++To boot MX28EVK from an SD card, set the boot mode DIP switches as:
++
++   * Boot Mode Select: 1 0 0 1 (Boot from SD card Slot 0 - U42)
++   * JTAG PSWITCH RESET: To the right (reset disabled)
++   * Battery Source: Down
++   * Wall 5V: Up
++   * VDD 5V: To the left (off)
++   * Hold Button: Down (off)
++
++To boot MX28EVK from SPI NOR flash, set the boot mode DIP switches as:
++
++   * Boot Mode Select: 0 0 1 0 (Boot from SSP2)
++   * JTAG PSWITCH RESET: To the right (reset disabled)
++   * Battery Source: Down
++   * Wall 5V: Up
++   * VDD 5V: To the left (off)
++   * Hold Button: Down (off)
++
++Environment Storage
++-------------------
++
++There are three targets for mx28evk:
++
++"make mx28evk_config"		- store environment variables into MMC
++
++or
++
++"make mx28evk_nand_config"	- store environment variables into NAND flash
++
++or
++
++"make mx28evk_spi_config"       - store environment variables into SPI NOR flash
++
++Choose the target accordingly.
++
++Note: The mx28evk board does not come with a NAND flash populated from the
++factory. It comes with an empty slot (U23), which allows the insertion of a
++48-pin TSOP flash device.
++
++mx28evk does not come with SPI NOR flash populated from the factory either.
++It is possible to solder a SOIC memory on U49 or use a DIP8 on J89.
++To get SPI communication to work R320, R321,R322 and C178 need to be populated.
++Look in the schematics for the proper component values.
++
++Follow the instructions from doc/README.mxs to generate a bootable SD card or
++to generate a binary to be flashed into SPI NOR.
+diff --git a/board/zlg/imx280a/imx280a.c b/board/zlg/imx280a/imx280a.c
+new file mode 100644
+index 0000000000..1eefd9af8b
+--- /dev/null
++++ b/board/zlg/imx280a/imx280a.c
+@@ -0,0 +1,142 @@
++/*
++ * Freescale MX28EVK board
++ *
++ * (C) Copyright 2011 Freescale Semiconductor, Inc.
++ *
++ * Author: Fabio Estevam <fabio.estevam@freescale.com>
++ *
++ * Based on m28evk.c:
++ * Copyright (C) 2011 Marek Vasut <marek.vasut@gmail.com>
++ * on behalf of DENX Software Engineering GmbH
++ *
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++
++#include <common.h>
++#include <asm/gpio.h>
++#include <asm/io.h>
++#include <asm/arch/imx-regs.h>
++#include <asm/arch/iomux-mx28.h>
++#include <asm/arch/clock.h>
++#include <asm/arch/sys_proto.h>
++#include <linux/mii.h>
++#include <miiphy.h>
++#include <netdev.h>
++#include <errno.h>
++
++DECLARE_GLOBAL_DATA_PTR;
++
++/*
++ * Functions
++ */
++int board_early_init_f(void)
++{
++	/* IO0 clock at 480MHz */
++	mxs_set_ioclk(MXC_IOCLK0, 480000);
++	/* IO1 clock at 480MHz */
++	mxs_set_ioclk(MXC_IOCLK1, 480000);
++
++	/* SSP0 clock at 96MHz */
++	mxs_set_sspclk(MXC_SSPCLK0, 96000, 0);
++	/* SSP2 clock at 160MHz */
++	mxs_set_sspclk(MXC_SSPCLK2, 160000, 0);
++
++#ifdef	CONFIG_CMD_USB
++	mxs_iomux_setup_pad(MX28_PAD_SSP2_SS1__USB1_OVERCURRENT);
++	mxs_iomux_setup_pad(MX28_PAD_AUART2_RX__GPIO_3_8 |
++			MXS_PAD_4MA | MXS_PAD_3V3 | MXS_PAD_NOPULL);
++	gpio_direction_output(MX28_PAD_AUART2_RX__GPIO_3_8, 1);
++#endif
++
++	return 0;
++}
++
++int dram_init(void)
++{
++	return mxs_dram_init();
++}
++
++int board_init(void)
++{
++	/* Adress of boot parameters */
++	gd->bd->bi_boot_params = PHYS_SDRAM_1 + 0x100;
++
++	return 0;
++}
++
++#ifdef	CONFIG_CMD_MMC
++static int mx28evk_mmc_wp(int id)
++{
++	if (id != 0) {
++		printf("MXS MMC: Invalid card selected (card id = %d)\n", id);
++		return 1;
++	}
++
++	return gpio_get_value(MX28_PAD_SSP1_SCK__GPIO_2_12);
++}
++
++int board_mmc_init(bd_t *bis)
++{
++	/* Configure WP as input */
++	gpio_direction_input(MX28_PAD_SSP1_SCK__GPIO_2_12);
++
++	/* Configure MMC0 Power Enable */
++	gpio_direction_output(MX28_PAD_PWM3__GPIO_3_28, 0);
++
++	return mxsmmc_initialize(bis, 0, mx28evk_mmc_wp, NULL);
++}
++#endif
++
++#ifdef	CONFIG_CMD_NET
++
++int board_eth_init(bd_t *bis)
++{
++	struct mxs_clkctrl_regs *clkctrl_regs =
++		(struct mxs_clkctrl_regs *)MXS_CLKCTRL_BASE;
++	struct eth_device *dev;
++	int ret;
++
++	ret = cpu_eth_init(bis);
++	if (ret)
++		return ret;
++
++	/* MX28EVK uses ENET_CLK PAD to drive FEC clock */
++	writel(CLKCTRL_ENET_TIME_SEL_RMII_CLK | CLKCTRL_ENET_CLK_OUT_EN,
++	       &clkctrl_regs->hw_clkctrl_enet);
++
++	/* Power-on FECs */
++	gpio_direction_output(MX28_PAD_SSP1_DATA3__GPIO_2_15, 0);
++
++	/* Reset FEC PHYs */
++	gpio_direction_output(MX28_PAD_ENET0_RX_CLK__GPIO_4_13, 0);
++	udelay(200);
++	gpio_set_value(MX28_PAD_ENET0_RX_CLK__GPIO_4_13, 1);
++
++	ret = fecmxc_initialize_multi(bis, 0, 0, MXS_ENET0_BASE);
++	if (ret) {
++		puts("FEC MXS: Unable to init FEC0\n");
++		return ret;
++	}
++
++	ret = fecmxc_initialize_multi(bis, 1, 3, MXS_ENET1_BASE);
++	if (ret) {
++		puts("FEC MXS: Unable to init FEC1\n");
++		return ret;
++	}
++
++	dev = eth_get_dev_by_name("FEC0");
++	if (!dev) {
++		puts("FEC MXS: Unable to get FEC0 device entry\n");
++		return -EINVAL;
++	}
++
++	dev = eth_get_dev_by_name("FEC1");
++	if (!dev) {
++		puts("FEC MXS: Unable to get FEC1 device entry\n");
++		return -EINVAL;
++	}
++
++	return ret;
++}
++
++#endif
+diff --git a/board/zlg/imx280a/iomux.c b/board/zlg/imx280a/iomux.c
+new file mode 100644
+index 0000000000..3fd0f9982f
+--- /dev/null
++++ b/board/zlg/imx280a/iomux.c
+@@ -0,0 +1,131 @@
++/*
++ * Freescale MX28EVK IOMUX setup
++ *
++ * Copyright (C) 2011 Marek Vasut <marek.vasut@gmail.com>
++ * on behalf of DENX Software Engineering GmbH
++ *
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++
++#include <common.h>
++#include <config.h>
++#include <asm/io.h>
++#include <asm/arch/iomux-mx28.h>
++#include <asm/arch/imx-regs.h>
++#include <asm/arch/sys_proto.h>
++
++#define	MUX_CONFIG_SSP0	(MXS_PAD_3V3 | MXS_PAD_8MA | MXS_PAD_PULLUP)
++#define	MUX_CONFIG_GPMI	(MXS_PAD_3V3 | MXS_PAD_4MA | MXS_PAD_NOPULL)
++#define	MUX_CONFIG_ENET	(MXS_PAD_3V3 | MXS_PAD_8MA | MXS_PAD_PULLUP)
++#define	MUX_CONFIG_EMI	(MXS_PAD_3V3 | MXS_PAD_12MA | MXS_PAD_NOPULL)
++#define	MUX_CONFIG_SSP2	(MXS_PAD_3V3 | MXS_PAD_4MA | MXS_PAD_PULLUP)
++#define	MUX_CONFIG_LCD	(MXS_PAD_3V3 | MXS_PAD_4MA | MXS_PAD_NOPULL)
++
++const iomux_cfg_t iomux_setup[] = {
++    /* solve the conflict with DUART */
++    MX28_PAD_PWM0__GPIO_3_16,
++    MX28_PAD_PWM1__GPIO_3_17,
++	/* DUART */
++	MX28_PAD_AUART0_CTS__DUART_RX,
++	MX28_PAD_AUART0_RTS__DUART_TX,
++
++	/* MMC0 */
++	MX28_PAD_SSP0_DATA0__SSP0_D0 | MUX_CONFIG_SSP0,
++	MX28_PAD_SSP0_DATA1__SSP0_D1 | MUX_CONFIG_SSP0,
++	MX28_PAD_SSP0_DATA2__SSP0_D2 | MUX_CONFIG_SSP0,
++	MX28_PAD_SSP0_DATA3__SSP0_D3 | MUX_CONFIG_SSP0,
++	MX28_PAD_SSP0_CMD__SSP0_CMD | MUX_CONFIG_SSP0,
++	MX28_PAD_SSP0_DETECT__SSP0_CARD_DETECT |
++		(MXS_PAD_8MA | MXS_PAD_3V3 | MXS_PAD_NOPULL),
++	MX28_PAD_SSP0_SCK__SSP0_SCK |
++		(MXS_PAD_12MA | MXS_PAD_3V3 | MXS_PAD_NOPULL),
++
++#ifdef CONFIG_NAND_MXS
++	/* GPMI NAND */
++	MX28_PAD_GPMI_D00__GPMI_D0 | MUX_CONFIG_GPMI,
++	MX28_PAD_GPMI_D01__GPMI_D1 | MUX_CONFIG_GPMI,
++	MX28_PAD_GPMI_D02__GPMI_D2 | MUX_CONFIG_GPMI,
++	MX28_PAD_GPMI_D03__GPMI_D3 | MUX_CONFIG_GPMI,
++	MX28_PAD_GPMI_D04__GPMI_D4 | MUX_CONFIG_GPMI,
++	MX28_PAD_GPMI_D05__GPMI_D5 | MUX_CONFIG_GPMI,
++	MX28_PAD_GPMI_D06__GPMI_D6 | MUX_CONFIG_GPMI,
++	MX28_PAD_GPMI_D07__GPMI_D7 | MUX_CONFIG_GPMI,
++	MX28_PAD_GPMI_CE0N__GPMI_CE0N | MUX_CONFIG_GPMI,
++	MX28_PAD_GPMI_RDY0__GPMI_READY0 | MUX_CONFIG_GPMI,
++	MX28_PAD_GPMI_RDN__GPMI_RDN |
++		(MXS_PAD_3V3 | MXS_PAD_8MA | MXS_PAD_PULLUP),
++	MX28_PAD_GPMI_WRN__GPMI_WRN | MUX_CONFIG_GPMI,
++	MX28_PAD_GPMI_ALE__GPMI_ALE | MUX_CONFIG_GPMI,
++	MX28_PAD_GPMI_CLE__GPMI_CLE | MUX_CONFIG_GPMI,
++	MX28_PAD_GPMI_RESETN__GPMI_RESETN | MUX_CONFIG_GPMI,
++#endif
++
++	/* EMI */
++	MX28_PAD_EMI_D00__EMI_DATA0 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_D01__EMI_DATA1 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_D02__EMI_DATA2 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_D03__EMI_DATA3 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_D04__EMI_DATA4 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_D05__EMI_DATA5 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_D06__EMI_DATA6 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_D07__EMI_DATA7 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_D08__EMI_DATA8 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_D09__EMI_DATA9 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_D10__EMI_DATA10 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_D11__EMI_DATA11 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_D12__EMI_DATA12 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_D13__EMI_DATA13 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_D14__EMI_DATA14 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_D15__EMI_DATA15 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_ODT0__EMI_ODT0 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_DQM0__EMI_DQM0 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_DQM1__EMI_DQM1 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_DDR_OPEN_FB__EMI_DDR_OPEN_FEEDBACK | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_CLK__EMI_CLK | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_DQS0__EMI_DQS0 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_DQS1__EMI_DQS1 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_DDR_OPEN__EMI_DDR_OPEN | MUX_CONFIG_EMI,
++
++	MX28_PAD_EMI_A00__EMI_ADDR0 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_A01__EMI_ADDR1 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_A02__EMI_ADDR2 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_A03__EMI_ADDR3 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_A04__EMI_ADDR4 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_A05__EMI_ADDR5 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_A06__EMI_ADDR6 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_A07__EMI_ADDR7 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_A08__EMI_ADDR8 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_A09__EMI_ADDR9 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_A10__EMI_ADDR10 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_A11__EMI_ADDR11 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_A12__EMI_ADDR12 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_A13__EMI_ADDR13 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_A14__EMI_ADDR14 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_BA0__EMI_BA0 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_BA1__EMI_BA1 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_BA2__EMI_BA2 | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_CASN__EMI_CASN | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_RASN__EMI_RASN | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_WEN__EMI_WEN | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_CE0N__EMI_CE0N | MUX_CONFIG_EMI,
++	MX28_PAD_EMI_CKE__EMI_CKE | MUX_CONFIG_EMI,
++};
++
++#define HW_DRAM_CTL29	(0x74 >> 2)
++#define CS_MAP		0xf
++#define COLUMN_SIZE	0x2
++#define ADDR_PINS	0x1
++#define APREBIT		0xa
++
++#define HW_DRAM_CTL29_CONFIG	(CS_MAP << 24 | COLUMN_SIZE << 16 | \
++					ADDR_PINS << 8 | APREBIT)
++
++void mxs_adjust_memory_params(uint32_t *dram_vals)
++{
++	dram_vals[HW_DRAM_CTL29] = HW_DRAM_CTL29_CONFIG;
++}
++
++void board_init_ll(const uint32_t arg, const uint32_t *resptr)
++{
++	mxs_common_spl_init(arg, resptr, iomux_setup, ARRAY_SIZE(iomux_setup));
++}
+diff --git a/build.sh b/build.sh
+new file mode 100644
+index 0000000000..8fbeec4ca9
+--- /dev/null
++++ b/build.sh
+@@ -0,0 +1,19 @@
++#!/bin/bash
++
++source ./setenv.sh
++
++NUM_CPUS=$(cat /proc/cpuinfo | grep -c processor)
++
++if [ "$1" = "mmc" ]; then
++    echo "build mmc uboot"
++    make imx280a_mmc_defconfig
++else
++    echo "build nand uboot"
++    make imx280a_defconfig
++fi
++
++make -j${NUM_CPUS} spl/u-boot-spl
++make -j${NUM_CPUS} u-boot
++elftosb -f imx28 -c arch/arm/cpu/arm926ejs/mxs/u-boot-imx28.bd -o u-boot.sb
++#cp -rf ./u-boot.sb /home/john/share/imx280/工具/烧写工具/cfimager/imx28_ivt_uboot.sb && sync
++
+diff --git a/configs/imx280a_defconfig b/configs/imx280a_defconfig
+new file mode 100644
+index 0000000000..ffdb63a743
+--- /dev/null
++++ b/configs/imx280a_defconfig
+@@ -0,0 +1,844 @@
++#
++# Automatically generated file; DO NOT EDIT.
++# U-Boot 2017.09 Configuration
++#
++CONFIG_CREATE_ARCH_SYMLINK=y
++# CONFIG_ARC is not set
++CONFIG_ARM=y
++# CONFIG_M68K is not set
++# CONFIG_MICROBLAZE is not set
++# CONFIG_MIPS is not set
++# CONFIG_NDS32 is not set
++# CONFIG_NIOS2 is not set
++# CONFIG_PPC is not set
++# CONFIG_SANDBOX is not set
++# CONFIG_SH is not set
++# CONFIG_X86 is not set
++# CONFIG_XTENSA is not set
++CONFIG_SYS_ARCH="arm"
++CONFIG_SYS_CPU="arm926ejs"
++CONFIG_SYS_SOC="mxs"
++CONFIG_SYS_VENDOR="zlg"
++CONFIG_SYS_BOARD="imx280a"
++CONFIG_SYS_CONFIG_NAME="imx280a"
++
++#
++# ARM architecture
++#
++CONFIG_ARM_ASM_UNIFIED=y
++CONFIG_CPU_ARM926EJS=y
++CONFIG_SYS_ARM_ARCH=5
++CONFIG_SYS_CACHE_SHIFT_5=y
++CONFIG_SYS_CACHELINE_SIZE=32
++# CONFIG_SEMIHOSTING is not set
++# CONFIG_SYS_THUMB_BUILD is not set
++# CONFIG_SPL_SYS_THUMB_BUILD is not set
++# CONFIG_SYS_L2CACHE_OFF is not set
++# CONFIG_ENABLE_ARM_SOC_BOOT0_HOOK is not set
++# CONFIG_ARM_CORTEX_CPU_IS_UP is not set
++CONFIG_USE_ARCH_MEMCPY=y
++CONFIG_SPL_USE_ARCH_MEMCPY=y
++CONFIG_USE_ARCH_MEMSET=y
++CONFIG_SPL_USE_ARCH_MEMSET=y
++# CONFIG_ARM64_SUPPORT_AARCH32 is not set
++# CONFIG_ARCH_AT91 is not set
++# CONFIG_TARGET_EDB93XX is not set
++# CONFIG_TARGET_ASPENITE is not set
++# CONFIG_TARGET_GPLUGD is not set
++# CONFIG_ARCH_DAVINCI is not set
++# CONFIG_KIRKWOOD is not set
++# CONFIG_ARCH_MVEBU is not set
++# CONFIG_TARGET_DEVKIT3250 is not set
++# CONFIG_TARGET_WORK_92105 is not set
++# CONFIG_TARGET_MX25PDK is not set
++# CONFIG_TARGET_ZMX25 is not set
++# CONFIG_TARGET_APF27 is not set
++# CONFIG_TARGET_APX4DEVKIT is not set
++# CONFIG_TARGET_XFI3 is not set
++# CONFIG_TARGET_M28EVK is not set
++# CONFIG_TARGET_MX23EVK is not set
++# CONFIG_TARGET_MX28EVK is not set
++CONFIG_TARGET_IMX280A=y
++# CONFIG_TARGET_MX23_OLINUXINO is not set
++# CONFIG_TARGET_BG0900 is not set
++# CONFIG_TARGET_SANSA_FUZE_PLUS is not set
++# CONFIG_TARGET_SC_SPS_1 is not set
++# CONFIG_ORION5X is not set
++# CONFIG_TARGET_SPEAR300 is not set
++# CONFIG_TARGET_SPEAR310 is not set
++# CONFIG_TARGET_SPEAR320 is not set
++# CONFIG_TARGET_SPEAR600 is not set
++# CONFIG_TARGET_STV0991 is not set
++# CONFIG_TARGET_X600 is not set
++# CONFIG_TARGET_IMX31_PHYCORE is not set
++# CONFIG_TARGET_IMX31_PHYCORE_EET is not set
++# CONFIG_TARGET_MX31ADS is not set
++# CONFIG_TARGET_MX31PDK is not set
++# CONFIG_TARGET_WOODBURN is not set
++# CONFIG_TARGET_WOODBURN_SD is not set
++# CONFIG_TARGET_FLEA3 is not set
++# CONFIG_TARGET_MX35PDK is not set
++# CONFIG_ARCH_BCM283X is not set
++# CONFIG_TARGET_VEXPRESS_CA15_TC2 is not set
++# CONFIG_TARGET_VEXPRESS_CA5X2 is not set
++# CONFIG_TARGET_VEXPRESS_CA9X4 is not set
++# CONFIG_TARGET_BCM23550_W1D is not set
++# CONFIG_TARGET_BCM28155_AP is not set
++# CONFIG_TARGET_BCMCYGNUS is not set
++# CONFIG_TARGET_BCMNSP is not set
++# CONFIG_TARGET_BCMNS2 is not set
++# CONFIG_ARCH_EXYNOS is not set
++# CONFIG_ARCH_S5PC1XX is not set
++# CONFIG_ARCH_HIGHBANK is not set
++# CONFIG_ARCH_INTEGRATOR is not set
++# CONFIG_ARCH_KEYSTONE is not set
++# CONFIG_ARCH_OMAP2PLUS is not set
++# CONFIG_ARCH_MESON is not set
++# CONFIG_ARCH_MX7ULP is not set
++# CONFIG_ARCH_MX7 is not set
++# CONFIG_ARCH_MX6 is not set
++CONFIG_SPL_LDSCRIPT="arch/arm/cpu/arm926ejs/mxs/u-boot-spl.lds"
++# CONFIG_ARCH_MX5 is not set
++# CONFIG_ARCH_RMOBILE is not set
++# CONFIG_TARGET_S32V234EVB is not set
++# CONFIG_ARCH_SNAPDRAGON is not set
++# CONFIG_ARCH_SOCFPGA is not set
++# CONFIG_ARCH_SUNXI is not set
++# CONFIG_TARGET_TS4600 is not set
++# CONFIG_ARCH_VF610 is not set
++# CONFIG_ARCH_ZYNQ is not set
++# CONFIG_ARCH_ZYNQMP is not set
++# CONFIG_TEGRA is not set
++# CONFIG_TARGET_VEXPRESS64_AEMV8A is not set
++# CONFIG_TARGET_VEXPRESS64_BASE_FVP is not set
++# CONFIG_TARGET_VEXPRESS64_BASE_FVP_DRAM is not set
++# CONFIG_TARGET_VEXPRESS64_JUNO is not set
++# CONFIG_TARGET_LS2080A_EMU is not set
++# CONFIG_TARGET_LS2080A_SIMU is not set
++# CONFIG_TARGET_LS2080AQDS is not set
++# CONFIG_TARGET_LS2080ARDB is not set
++# CONFIG_TARGET_LS2081ARDB is not set
++# CONFIG_TARGET_HIKEY is not set
++# CONFIG_TARGET_POPLAR is not set
++# CONFIG_TARGET_LS1012AQDS is not set
++# CONFIG_TARGET_LS1012ARDB is not set
++# CONFIG_TARGET_LS1012AFRDM is not set
++# CONFIG_TARGET_LS1021AQDS is not set
++# CONFIG_TARGET_LS1021ATWR is not set
++# CONFIG_TARGET_LS1021AIOT is not set
++# CONFIG_TARGET_LS1043AQDS is not set
++# CONFIG_TARGET_LS1043ARDB is not set
++# CONFIG_TARGET_LS1046AQDS is not set
++# CONFIG_TARGET_LS1046ARDB is not set
++# CONFIG_TARGET_H2200 is not set
++# CONFIG_TARGET_ZIPITZ2 is not set
++# CONFIG_TARGET_COLIBRI_PXA270 is not set
++# CONFIG_ARCH_UNIPHIER is not set
++# CONFIG_STM32 is not set
++# CONFIG_ARCH_STI is not set
++# CONFIG_ARCH_ROCKCHIP is not set
++# CONFIG_TARGET_THUNDERX_88XX is not set
++# CONFIG_ARCH_ASPEED is not set
++CONFIG_SPL_GPIO_SUPPORT=y
++CONFIG_SPL_LIBCOMMON_SUPPORT=y
++CONFIG_SPL_LIBGENERIC_SUPPORT=y
++# CONFIG_SPL_MMC_SUPPORT is not set
++CONFIG_SPL_SERIAL_SUPPORT=y
++# CONFIG_SPL_DRIVERS_MISC_SUPPORT is not set
++# CONFIG_SPL_LIBDISK_SUPPORT is not set
++# CONFIG_SPL_NAND_SUPPORT is not set
++# CONFIG_SPL_SPI_FLASH_SUPPORT is not set
++# CONFIG_SPL_SPI_SUPPORT is not set
++# CONFIG_SPL_WATCHDOG_SUPPORT is not set
++CONFIG_IDENT_STRING=""
++# CONFIG_VIDEO is not set
++# CONFIG_SPL_FAT_SUPPORT is not set
++# CONFIG_CMD_DEKBLOB is not set
++# CONFIG_CMD_HDMIDETECT is not set
++
++#
++# ARM debug
++#
++# CONFIG_DEBUG_LL is not set
++# CONFIG_DEBUG_UART is not set
++
++#
++# General setup
++#
++CONFIG_LOCALVERSION=""
++CONFIG_LOCALVERSION_AUTO=y
++CONFIG_CC_OPTIMIZE_FOR_SIZE=y
++# CONFIG_DISTRO_DEFAULTS is not set
++# CONFIG_SYS_MALLOC_F is not set
++CONFIG_EXPERT=y
++CONFIG_SYS_MALLOC_CLEAR_ON_INIT=y
++# CONFIG_TOOLS_DEBUG is not set
++# CONFIG_PHYS_64BIT is not set
++
++#
++# Boot images
++#
++# CONFIG_ANDROID_BOOT_IMAGE is not set
++CONFIG_FIT=y
++CONFIG_FIT_ENABLE_SHA256_SUPPORT=y
++# CONFIG_FIT_VERBOSE is not set
++# CONFIG_FIT_BEST_MATCH is not set
++# CONFIG_SPL_FIT is not set
++# CONFIG_SPL_LOAD_FIT is not set
++# CONFIG_OF_BOARD_SETUP is not set
++# CONFIG_OF_SYSTEM_SETUP is not set
++# CONFIG_OF_STDOUT_VIA_ALIAS is not set
++CONFIG_SYS_EXTRA_OPTIONS=""
++CONFIG_ARCH_FIXUP_FDT_MEMORY=y
++
++#
++# API
++#
++# CONFIG_API is not set
++
++#
++# Boot timing
++#
++# CONFIG_BOOTSTAGE is not set
++CONFIG_BOOTSTAGE_USER_COUNT=20
++CONFIG_BOOTSTAGE_RECORD_COUNT=30
++CONFIG_BOOTSTAGE_STASH_ADDR=0
++CONFIG_BOOTSTAGE_STASH_SIZE=0x1000
++
++#
++# Boot media
++#
++# CONFIG_NAND_BOOT is not set
++# CONFIG_ONENAND_BOOT is not set
++# CONFIG_QSPI_BOOT is not set
++# CONFIG_SATA_BOOT is not set
++# CONFIG_SD_BOOT is not set
++# CONFIG_SPI_BOOT is not set
++CONFIG_BOOTDELAY=1
++# CONFIG_USE_BOOTARGS is not set
++
++#
++# Console
++#
++# CONFIG_CONSOLE_RECORD is not set
++# CONFIG_SILENT_CONSOLE is not set
++# CONFIG_PRE_CONSOLE_BUFFER is not set
++# CONFIG_CONSOLE_MUX is not set
++CONFIG_SYS_CONSOLE_IS_IN_ENV=y
++# CONFIG_SYS_CONSOLE_OVERWRITE_ROUTINE is not set
++# CONFIG_SYS_CONSOLE_ENV_OVERWRITE is not set
++# CONFIG_SYS_CONSOLE_INFO_QUIET is not set
++# CONFIG_SYS_STDIO_DEREGISTER is not set
++# CONFIG_FIT_EMBED is not set
++CONFIG_DEFAULT_FDT_FILE=""
++CONFIG_VERSION_VARIABLE=y
++CONFIG_DISPLAY_CPUINFO=y
++# CONFIG_DISPLAY_BOARDINFO is not set
++
++#
++# Start-up hooks
++#
++# CONFIG_ARCH_EARLY_INIT_R is not set
++CONFIG_ARCH_MISC_INIT=y
++CONFIG_BOARD_EARLY_INIT_F=y
++
++#
++# Security support
++#
++CONFIG_HASH=y
++
++#
++# SPL / TPL
++#
++CONFIG_SUPPORT_SPL=y
++CONFIG_SPL=y
++# CONFIG_SPL_BOARD_INIT is not set
++# CONFIG_SPL_BOOTROM_SUPPORT is not set
++CONFIG_SPL_RAW_IMAGE_SUPPORT=y
++CONFIG_SPL_LEGACY_IMAGE_SUPPORT=y
++# CONFIG_SPL_SYS_MALLOC_SIMPLE is not set
++# CONFIG_TPL_SYS_MALLOC_SIMPLE is not set
++# CONFIG_SPL_STACK_R is not set
++# CONFIG_SPL_SEPARATE_BSS is not set
++# CONFIG_SPL_DISPLAY_PRINT is not set
++# CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR is not set
++# CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION is not set
++# CONFIG_SPL_CPU_SUPPORT is not set
++# CONFIG_SPL_CRYPTO_SUPPORT is not set
++# CONFIG_SPL_HASH_SUPPORT is not set
++# CONFIG_SPL_DMA_SUPPORT is not set
++# CONFIG_SPL_ENV_SUPPORT is not set
++# CONFIG_SPL_EXT_SUPPORT is not set
++# CONFIG_SPL_FPGA_SUPPORT is not set
++# CONFIG_SPL_I2C_SUPPORT is not set
++# CONFIG_SPL_MPC8XXX_INIT_DDR_SUPPORT is not set
++# CONFIG_SPL_MTD_SUPPORT is not set
++# CONFIG_SPL_MUSB_NEW_SUPPORT is not set
++# CONFIG_SPL_NET_SUPPORT is not set
++# CONFIG_SPL_NO_CPU_SUPPORT is not set
++# CONFIG_SPL_NOR_SUPPORT is not set
++# CONFIG_SPL_XIP_SUPPORT is not set
++# CONFIG_SPL_ONENAND_SUPPORT is not set
++# CONFIG_SPL_OS_BOOT is not set
++# CONFIG_SPL_PCI_SUPPORT is not set
++# CONFIG_SPL_PCH_SUPPORT is not set
++# CONFIG_SPL_POST_MEM_SUPPORT is not set
++# CONFIG_SPL_POWER_SUPPORT is not set
++# CONFIG_SPL_RAM_SUPPORT is not set
++# CONFIG_SPL_RTC_SUPPORT is not set
++# CONFIG_SPL_SATA_SUPPORT is not set
++# CONFIG_SPL_USB_HOST_SUPPORT is not set
++# CONFIG_SPL_USB_GADGET_SUPPORT is not set
++# CONFIG_SPL_YMODEM_SUPPORT is not set
++
++#
++# Command line interface
++#
++CONFIG_CMDLINE=y
++CONFIG_HUSH_PARSER=y
++CONFIG_SYS_PROMPT="=> "
++
++#
++# Autoboot options
++#
++CONFIG_AUTOBOOT=y
++# CONFIG_AUTOBOOT_KEYED is not set
++
++#
++# FASTBOOT
++#
++
++#
++# Commands
++#
++
++#
++# Info commands
++#
++CONFIG_CMD_BDI=y
++# CONFIG_CMD_CONFIG is not set
++CONFIG_CMD_CONSOLE=y
++# CONFIG_CMD_CPU is not set
++# CONFIG_CMD_LICENSE is not set
++
++#
++# Boot commands
++#
++CONFIG_CMD_BOOTD=y
++CONFIG_CMD_BOOTM=y
++CONFIG_CMD_BOOTZ=y
++# CONFIG_CMD_BOOTMENU is not set
++CONFIG_CMD_ELF=y
++CONFIG_CMD_FDT=y
++CONFIG_CMD_GO=y
++CONFIG_CMD_RUN=y
++CONFIG_CMD_IMI=y
++# CONFIG_CMD_IMLS is not set
++CONFIG_CMD_XIMG=y
++# CONFIG_CMD_POWEROFF is not set
++# CONFIG_CMD_SPL is not set
++# CONFIG_CMD_THOR_DOWNLOAD is not set
++# CONFIG_CMD_ZBOOT is not set
++
++#
++# Environment commands
++#
++# CONFIG_CMD_ASKENV is not set
++CONFIG_CMD_EXPORTENV=y
++CONFIG_CMD_IMPORTENV=y
++CONFIG_CMD_EDITENV=y
++# CONFIG_CMD_GREPENV is not set
++CONFIG_CMD_SAVEENV=y
++CONFIG_CMD_ENV_EXISTS=y
++# CONFIG_CMD_ENV_CALLBACK is not set
++# CONFIG_CMD_ENV_FLAGS is not set
++
++#
++# Memory commands
++#
++CONFIG_CMD_CRC32=y
++# CONFIG_CRC32_VERIFY is not set
++# CONFIG_CMD_EEPROM is not set
++# CONFIG_LOOPW is not set
++# CONFIG_CMD_MD5SUM is not set
++# CONFIG_CMD_MEMINFO is not set
++CONFIG_CMD_MEMORY=y
++# CONFIG_CMD_MEMTEST is not set
++# CONFIG_CMD_MX_CYCLIC is not set
++# CONFIG_CMD_SHA1SUM is not set
++# CONFIG_CMD_STRINGS is not set
++
++#
++# Compression commands
++#
++# CONFIG_CMD_LZMADEC is not set
++# CONFIG_CMD_UNZIP is not set
++# CONFIG_CMD_ZIP is not set
++
++#
++# Device access commands
++#
++# CONFIG_CMD_ARMFLASH is not set
++# CONFIG_CMD_CLK is not set
++# CONFIG_CMD_DFU is not set
++# CONFIG_CMD_FDC is not set
++# CONFIG_CMD_FLASH is not set
++CONFIG_CMD_FPGA=y
++# CONFIG_CMD_FPGA_LOADBP is not set
++# CONFIG_CMD_FPGA_LOADFS is not set
++# CONFIG_CMD_FPGA_LOADMK is not set
++# CONFIG_CMD_FPGA_LOADP is not set
++# CONFIG_CMD_FPGAD is not set
++# CONFIG_CMD_FUSE is not set
++CONFIG_CMD_GPIO=y
++# CONFIG_CMD_GPT is not set
++# CONFIG_CMD_IDE is not set
++# CONFIG_CMD_IO is not set
++# CONFIG_CMD_IOTRACE is not set
++# CONFIG_CMD_I2C is not set
++CONFIG_CMD_LOADB=y
++CONFIG_CMD_LOADS=y
++CONFIG_CMD_MMC=y
++CONFIG_CMD_NAND=y
++CONFIG_CMD_NAND_TRIMFFS=y
++# CONFIG_CMD_NAND_LOCK_UNLOCK is not set
++# CONFIG_CMD_NAND_TORTURE is not set
++# CONFIG_CMD_MMC_SPI is not set
++# CONFIG_CMD_ONENAND is not set
++# CONFIG_CMD_PART is not set
++# CONFIG_CMD_PCI is not set
++# CONFIG_CMD_PCMCIA is not set
++# CONFIG_CMD_READ is not set
++# CONFIG_CMD_SATA is not set
++# CONFIG_CMD_SAVES is not set
++# CONFIG_CMD_SDRAM is not set
++CONFIG_CMD_SF=y
++# CONFIG_CMD_SF_TEST is not set
++CONFIG_CMD_SPI=y
++# CONFIG_CMD_TSI148 is not set
++# CONFIG_CMD_UNIVERSE is not set
++# CONFIG_CMD_USB is not set
++# CONFIG_CMD_USB_SDP is not set
++# CONFIG_CMD_USB_MASS_STORAGE is not set
++
++#
++# Shell scripting commands
++#
++CONFIG_CMD_ECHO=y
++CONFIG_CMD_ITEST=y
++CONFIG_CMD_SOURCE=y
++CONFIG_CMD_SETEXPR=y
++
++#
++# Network commands
++#
++# CONFIG_CMD_NET is not set
++# CONFIG_CMD_TFTPPUT is not set
++# CONFIG_CMD_TFTPSRV is not set
++# CONFIG_CMD_RARP is not set
++# CONFIG_CMD_DHCP is not set
++# CONFIG_CMD_PXE is not set
++# CONFIG_CMD_NFS is not set
++# CONFIG_CMD_MII is not set
++# CONFIG_CMD_PING is not set
++# CONFIG_CMD_CDP is not set
++# CONFIG_CMD_SNTP is not set
++# CONFIG_CMD_DNS is not set
++# CONFIG_CMD_LINK_LOCAL is not set
++# CONFIG_CMD_ETHSW is not set
++
++#
++# Misc commands
++#
++# CONFIG_CMD_BSP is not set
++# CONFIG_CMD_BKOPS_ENABLE is not set
++CONFIG_CMD_CACHE=y
++# CONFIG_CMD_DISPLAY is not set
++# CONFIG_CMD_LED is not set
++CONFIG_CMD_DATE=y
++# CONFIG_CMD_TIME is not set
++# CONFIG_CMD_GETTIME is not set
++CONFIG_CMD_MISC=y
++# CONFIG_CMD_TIMER is not set
++# CONFIG_CMD_QFW is not set
++# CONFIG_CMD_TERMINAL is not set
++# CONFIG_CMD_UUID is not set
++
++#
++# Power commands
++#
++
++#
++# Security commands
++#
++# CONFIG_CMD_AES is not set
++# CONFIG_CMD_BLOB is not set
++# CONFIG_CMD_HASH is not set
++
++#
++# Firmware commands
++#
++
++#
++# Filesystem commands
++#
++# CONFIG_CMD_EXT2 is not set
++CONFIG_CMD_EXT4=y
++CONFIG_CMD_EXT4_WRITE=y
++CONFIG_CMD_FAT=y
++CONFIG_CMD_FS_GENERIC=y
++# CONFIG_CMD_FS_UUID is not set
++# CONFIG_CMD_JFFS2 is not set
++CONFIG_CMD_MTDPARTS=y
++CONFIG_MTDIDS_DEFAULT=""
++CONFIG_MTDPARTS_DEFAULT=""
++# CONFIG_CMD_MTDPARTS_SPREAD is not set
++# CONFIG_CMD_REISER is not set
++# CONFIG_CMD_SCSI is not set
++# CONFIG_CMD_ZFS is not set
++
++#
++# Debug commands
++#
++# CONFIG_CMD_BEDBUG is not set
++# CONFIG_CMD_DIAG is not set
++# CONFIG_CMD_KGDB is not set
++# CONFIG_CMD_TRACE is not set
++CONFIG_CMD_UBI=y
++CONFIG_CMD_UBIFS=y
++
++#
++# Partition Types
++#
++CONFIG_PARTITIONS=y
++# CONFIG_MAC_PARTITION is not set
++# CONFIG_SPL_MAC_PARTITION is not set
++CONFIG_DOS_PARTITION=y
++CONFIG_SPL_DOS_PARTITION=y
++# CONFIG_ISO_PARTITION is not set
++# CONFIG_SPL_ISO_PARTITION is not set
++# CONFIG_AMIGA_PARTITION is not set
++# CONFIG_SPL_AMIGA_PARTITION is not set
++# CONFIG_EFI_PARTITION is not set
++# CONFIG_SPL_EFI_PARTITION is not set
++# CONFIG_PARTITION_UUIDS is not set
++# CONFIG_SPL_PARTITION_UUIDS is not set
++CONFIG_SUPPORT_OF_CONTROL=y
++
++#
++# Device Tree Control
++#
++# CONFIG_OF_CONTROL is not set
++# CONFIG_OF_BOARD_FIXUP is not set
++
++#
++# Environment
++#
++# CONFIG_ENV_IS_NOWHERE is not set
++# CONFIG_ENV_IS_IN_DATAFLASH is not set
++# CONFIG_ENV_IS_IN_EEPROM is not set
++# CONFIG_ENV_IS_IN_FAT is not set
++# CONFIG_ENV_IS_IN_FLASH is not set
++CONFIG_ENV_IS_IN_MMC=y
++# CONFIG_ENV_IS_IN_NAND is not set
++# CONFIG_ENV_IS_IN_NVRAM is not set
++# CONFIG_ENV_IS_IN_ONENAND is not set
++# CONFIG_ENV_IS_IN_REMOTE is not set
++# CONFIG_ENV_IS_IN_SPI_FLASH is not set
++# CONFIG_ENV_IS_IN_UBI is not set
++# CONFIG_ENV_AES is not set
++# CONFIG_NET is not set
++
++#
++# Device Drivers
++#
++
++#
++# Generic Driver Options
++#
++# CONFIG_DM is not set
++CONFIG_DM_DEV_READ_INLINE=y
++# CONFIG_ADC is not set
++# CONFIG_ADC_EXYNOS is not set
++# CONFIG_ADC_SANDBOX is not set
++# CONFIG_SATA is not set
++
++#
++# SATA/SCSI device support
++#
++# CONFIG_BLOCK_CACHE is not set
++# CONFIG_IDE is not set
++
++#
++# Clock
++#
++# CONFIG_CPU is not set
++
++#
++# Hardware crypto devices
++#
++# CONFIG_FSL_CAAM is not set
++# CONFIG_SYS_FSL_SEC_BE is not set
++# CONFIG_SYS_FSL_SEC_LE is not set
++
++#
++# Demo for driver model
++#
++
++#
++# DFU support
++#
++
++#
++# DMA Support
++#
++# CONFIG_TI_EDMA3 is not set
++
++#
++# FPGA support
++#
++# CONFIG_FPGA_ALTERA is not set
++# CONFIG_FPGA_SOCFPGA is not set
++# CONFIG_FPGA_XILINX is not set
++
++#
++# GPIO Support
++#
++# CONFIG_CMD_PCA953X is not set
++# CONFIG_CMD_TCA642X is not set
++
++#
++# I2C support
++#
++# CONFIG_SYS_I2C_DW is not set
++# CONFIG_SYS_I2C_IMX_LPI2C is not set
++# CONFIG_CROS_EC_KEYB is not set
++
++#
++# LED Support
++#
++# CONFIG_LED_STATUS is not set
++
++#
++# Mailbox Controller Support
++#
++
++#
++# Memory Controller drivers
++#
++
++#
++# Multifunction device drivers
++#
++# CONFIG_CROS_EC is not set
++# CONFIG_DS4510 is not set
++# CONFIG_FSL_SEC_MON is not set
++# CONFIG_MXC_OCOTP is not set
++# CONFIG_NUVOTON_NCT6102D is not set
++# CONFIG_PCA9551_LED is not set
++# CONFIG_WINBOND_W83627 is not set
++
++#
++# MMC Host controller Support
++#
++CONFIG_MMC=y
++# CONFIG_SPL_MMC_TINY is not set
++# CONFIG_MMC_DW is not set
++# CONFIG_MMC_MXC is not set
++CONFIG_MMC_MXS=y
++# CONFIG_MMC_PCI is not set
++# CONFIG_MMC_OMAP_HS is not set
++# CONFIG_MMC_SDHCI is not set
++
++#
++# MTD Support
++#
++# CONFIG_MTD_NOR_FLASH is not set
++# CONFIG_NAND is not set
++
++#
++# SPI Flash Support
++#
++CONFIG_SPI_FLASH=y
++# CONFIG_SPI_FLASH_BAR is not set
++# CONFIG_SF_DUAL_FLASH is not set
++# CONFIG_SPI_FLASH_ATMEL is not set
++# CONFIG_SPI_FLASH_EON is not set
++# CONFIG_SPI_FLASH_GIGADEVICE is not set
++# CONFIG_SPI_FLASH_MACRONIX is not set
++# CONFIG_SPI_FLASH_SPANSION is not set
++# CONFIG_SPI_FLASH_STMICRO is not set
++CONFIG_SPI_FLASH_SST=y
++# CONFIG_SPI_FLASH_WINBOND is not set
++CONFIG_SPI_FLASH_USE_4K_SECTORS=y
++# CONFIG_SPI_FLASH_MTD is not set
++
++#
++# UBI support
++#
++CONFIG_MTD_UBI=y
++CONFIG_MTD_UBI_WL_THRESHOLD=4096
++CONFIG_MTD_UBI_BEB_LIMIT=20
++# CONFIG_MTD_UBI_FASTMAP is not set
++# CONFIG_BITBANGMII is not set
++# CONFIG_MV88E6352_SWITCH is not set
++# CONFIG_PHYLIB is not set
++# CONFIG_PCI is not set
++
++#
++# PHY Subsystem
++#
++# CONFIG_MVEBU_COMPHY_SUPPORT is not set
++
++#
++# Pin controllers
++#
++
++#
++# Power
++#
++
++#
++# Power Domain Support
++#
++# CONFIG_PMIC_AS3722 is not set
++# CONFIG_POWER_MC34VR500 is not set
++# CONFIG_PWM_SANDBOX is not set
++
++#
++# Remote Processor drivers
++#
++
++#
++# Reset Controller Support
++#
++
++#
++# Real Time Clock
++#
++# CONFIG_SCSI is not set
++
++#
++# Serial drivers
++#
++CONFIG_BAUDRATE=115200
++# CONFIG_DEBUG_UART_SKIP_INIT is not set
++# CONFIG_ATMEL_USART is not set
++# CONFIG_FSL_LPUART is not set
++# CONFIG_MVEBU_A3700_UART is not set
++# CONFIG_SYS_NS16550 is not set
++# CONFIG_PXA_SERIAL is not set
++
++#
++# Sound support
++#
++# CONFIG_SOUND is not set
++
++#
++# SPI Support
++#
++# CONFIG_SOFT_SPI is not set
++# CONFIG_FSL_ESPI is not set
++# CONFIG_FSL_QSPI is not set
++# CONFIG_TI_QSPI is not set
++# CONFIG_OMAP3_SPI is not set
++
++#
++# SPMI support
++#
++
++#
++# System reset device drivers
++#
++# CONFIG_SYSRESET_SYSCON is not set
++# CONFIG_SYSRESET_WATCHDOG is not set
++# CONFIG_DM_THERMAL is not set
++
++#
++# Timer Support
++#
++
++#
++# TPM support
++#
++# CONFIG_USB is not set
++
++#
++# Graphics support
++#
++# CONFIG_SYS_WHITE_ON_BLACK is not set
++
++#
++# TrueType Fonts
++#
++# CONFIG_VIDEO_VESA is not set
++# CONFIG_VIDEO_LCD_ANX9804 is not set
++# CONFIG_VIDEO_LCD_SSD2828 is not set
++# CONFIG_VIDEO_MVEBU is not set
++# CONFIG_LCD is not set
++
++#
++# Watchdog Timer Support
++#
++# CONFIG_BCM2835_WDT is not set
++# CONFIG_ULP_WATCHDOG is not set
++# CONFIG_PHYS_TO_BUS is not set
++
++#
++# File systems
++#
++# CONFIG_FS_CBFS is not set
++CONFIG_FS_FAT=y
++# CONFIG_FAT_WRITE is not set
++CONFIG_FS_FAT_MAX_CLUSTSIZE=65536
++# CONFIG_FS_JFFS2 is not set
++# CONFIG_FS_CRAMFS is not set
++# CONFIG_YAFFS2 is not set
++
++#
++# Library routines
++#
++# CONFIG_BCH is not set
++# CONFIG_CC_OPTIMIZE_LIBS_FOR_SPEED is not set
++CONFIG_HAVE_PRIVATE_LIBGCC=y
++CONFIG_USE_PRIVATE_LIBGCC=y
++CONFIG_SYS_HZ=1000
++# CONFIG_USE_TINY_PRINTF is not set
++CONFIG_REGEX=y
++# CONFIG_LIB_RAND is not set
++# CONFIG_SPL_TINY_MEMSET is not set
++# CONFIG_TPL_TINY_MEMSET is not set
++CONFIG_RBTREE=y
++# CONFIG_CMD_DHRYSTONE is not set
++
++#
++# Security support
++#
++# CONFIG_AES is not set
++# CONFIG_RSA is not set
++
++#
++# Hashing Support
++#
++CONFIG_SHA1=y
++CONFIG_SHA256=y
++# CONFIG_SHA_HW_ACCEL is not set
++CONFIG_MD5=y
++
++#
++# Compression Support
++#
++# CONFIG_LZ4 is not set
++# CONFIG_LZMA is not set
++CONFIG_LZO=y
++# CONFIG_ERRNO_STR is not set
++CONFIG_OF_LIBFDT=y
++# CONFIG_OF_LIBFDT_OVERLAY is not set
++# CONFIG_SPL_OF_LIBFDT is not set
++# CONFIG_FDT_FIXUP_PARTITIONS is not set
++
++#
++# System tables
++#
++# CONFIG_EFI_LOADER is not set
++# CONFIG_UNIT_TEST is not set
+diff --git a/configs/imx280a_mmc_defconfig b/configs/imx280a_mmc_defconfig
+new file mode 100644
+index 0000000000..ffdb63a743
+--- /dev/null
++++ b/configs/imx280a_mmc_defconfig
+@@ -0,0 +1,844 @@
++#
++# Automatically generated file; DO NOT EDIT.
++# U-Boot 2017.09 Configuration
++#
++CONFIG_CREATE_ARCH_SYMLINK=y
++# CONFIG_ARC is not set
++CONFIG_ARM=y
++# CONFIG_M68K is not set
++# CONFIG_MICROBLAZE is not set
++# CONFIG_MIPS is not set
++# CONFIG_NDS32 is not set
++# CONFIG_NIOS2 is not set
++# CONFIG_PPC is not set
++# CONFIG_SANDBOX is not set
++# CONFIG_SH is not set
++# CONFIG_X86 is not set
++# CONFIG_XTENSA is not set
++CONFIG_SYS_ARCH="arm"
++CONFIG_SYS_CPU="arm926ejs"
++CONFIG_SYS_SOC="mxs"
++CONFIG_SYS_VENDOR="zlg"
++CONFIG_SYS_BOARD="imx280a"
++CONFIG_SYS_CONFIG_NAME="imx280a"
++
++#
++# ARM architecture
++#
++CONFIG_ARM_ASM_UNIFIED=y
++CONFIG_CPU_ARM926EJS=y
++CONFIG_SYS_ARM_ARCH=5
++CONFIG_SYS_CACHE_SHIFT_5=y
++CONFIG_SYS_CACHELINE_SIZE=32
++# CONFIG_SEMIHOSTING is not set
++# CONFIG_SYS_THUMB_BUILD is not set
++# CONFIG_SPL_SYS_THUMB_BUILD is not set
++# CONFIG_SYS_L2CACHE_OFF is not set
++# CONFIG_ENABLE_ARM_SOC_BOOT0_HOOK is not set
++# CONFIG_ARM_CORTEX_CPU_IS_UP is not set
++CONFIG_USE_ARCH_MEMCPY=y
++CONFIG_SPL_USE_ARCH_MEMCPY=y
++CONFIG_USE_ARCH_MEMSET=y
++CONFIG_SPL_USE_ARCH_MEMSET=y
++# CONFIG_ARM64_SUPPORT_AARCH32 is not set
++# CONFIG_ARCH_AT91 is not set
++# CONFIG_TARGET_EDB93XX is not set
++# CONFIG_TARGET_ASPENITE is not set
++# CONFIG_TARGET_GPLUGD is not set
++# CONFIG_ARCH_DAVINCI is not set
++# CONFIG_KIRKWOOD is not set
++# CONFIG_ARCH_MVEBU is not set
++# CONFIG_TARGET_DEVKIT3250 is not set
++# CONFIG_TARGET_WORK_92105 is not set
++# CONFIG_TARGET_MX25PDK is not set
++# CONFIG_TARGET_ZMX25 is not set
++# CONFIG_TARGET_APF27 is not set
++# CONFIG_TARGET_APX4DEVKIT is not set
++# CONFIG_TARGET_XFI3 is not set
++# CONFIG_TARGET_M28EVK is not set
++# CONFIG_TARGET_MX23EVK is not set
++# CONFIG_TARGET_MX28EVK is not set
++CONFIG_TARGET_IMX280A=y
++# CONFIG_TARGET_MX23_OLINUXINO is not set
++# CONFIG_TARGET_BG0900 is not set
++# CONFIG_TARGET_SANSA_FUZE_PLUS is not set
++# CONFIG_TARGET_SC_SPS_1 is not set
++# CONFIG_ORION5X is not set
++# CONFIG_TARGET_SPEAR300 is not set
++# CONFIG_TARGET_SPEAR310 is not set
++# CONFIG_TARGET_SPEAR320 is not set
++# CONFIG_TARGET_SPEAR600 is not set
++# CONFIG_TARGET_STV0991 is not set
++# CONFIG_TARGET_X600 is not set
++# CONFIG_TARGET_IMX31_PHYCORE is not set
++# CONFIG_TARGET_IMX31_PHYCORE_EET is not set
++# CONFIG_TARGET_MX31ADS is not set
++# CONFIG_TARGET_MX31PDK is not set
++# CONFIG_TARGET_WOODBURN is not set
++# CONFIG_TARGET_WOODBURN_SD is not set
++# CONFIG_TARGET_FLEA3 is not set
++# CONFIG_TARGET_MX35PDK is not set
++# CONFIG_ARCH_BCM283X is not set
++# CONFIG_TARGET_VEXPRESS_CA15_TC2 is not set
++# CONFIG_TARGET_VEXPRESS_CA5X2 is not set
++# CONFIG_TARGET_VEXPRESS_CA9X4 is not set
++# CONFIG_TARGET_BCM23550_W1D is not set
++# CONFIG_TARGET_BCM28155_AP is not set
++# CONFIG_TARGET_BCMCYGNUS is not set
++# CONFIG_TARGET_BCMNSP is not set
++# CONFIG_TARGET_BCMNS2 is not set
++# CONFIG_ARCH_EXYNOS is not set
++# CONFIG_ARCH_S5PC1XX is not set
++# CONFIG_ARCH_HIGHBANK is not set
++# CONFIG_ARCH_INTEGRATOR is not set
++# CONFIG_ARCH_KEYSTONE is not set
++# CONFIG_ARCH_OMAP2PLUS is not set
++# CONFIG_ARCH_MESON is not set
++# CONFIG_ARCH_MX7ULP is not set
++# CONFIG_ARCH_MX7 is not set
++# CONFIG_ARCH_MX6 is not set
++CONFIG_SPL_LDSCRIPT="arch/arm/cpu/arm926ejs/mxs/u-boot-spl.lds"
++# CONFIG_ARCH_MX5 is not set
++# CONFIG_ARCH_RMOBILE is not set
++# CONFIG_TARGET_S32V234EVB is not set
++# CONFIG_ARCH_SNAPDRAGON is not set
++# CONFIG_ARCH_SOCFPGA is not set
++# CONFIG_ARCH_SUNXI is not set
++# CONFIG_TARGET_TS4600 is not set
++# CONFIG_ARCH_VF610 is not set
++# CONFIG_ARCH_ZYNQ is not set
++# CONFIG_ARCH_ZYNQMP is not set
++# CONFIG_TEGRA is not set
++# CONFIG_TARGET_VEXPRESS64_AEMV8A is not set
++# CONFIG_TARGET_VEXPRESS64_BASE_FVP is not set
++# CONFIG_TARGET_VEXPRESS64_BASE_FVP_DRAM is not set
++# CONFIG_TARGET_VEXPRESS64_JUNO is not set
++# CONFIG_TARGET_LS2080A_EMU is not set
++# CONFIG_TARGET_LS2080A_SIMU is not set
++# CONFIG_TARGET_LS2080AQDS is not set
++# CONFIG_TARGET_LS2080ARDB is not set
++# CONFIG_TARGET_LS2081ARDB is not set
++# CONFIG_TARGET_HIKEY is not set
++# CONFIG_TARGET_POPLAR is not set
++# CONFIG_TARGET_LS1012AQDS is not set
++# CONFIG_TARGET_LS1012ARDB is not set
++# CONFIG_TARGET_LS1012AFRDM is not set
++# CONFIG_TARGET_LS1021AQDS is not set
++# CONFIG_TARGET_LS1021ATWR is not set
++# CONFIG_TARGET_LS1021AIOT is not set
++# CONFIG_TARGET_LS1043AQDS is not set
++# CONFIG_TARGET_LS1043ARDB is not set
++# CONFIG_TARGET_LS1046AQDS is not set
++# CONFIG_TARGET_LS1046ARDB is not set
++# CONFIG_TARGET_H2200 is not set
++# CONFIG_TARGET_ZIPITZ2 is not set
++# CONFIG_TARGET_COLIBRI_PXA270 is not set
++# CONFIG_ARCH_UNIPHIER is not set
++# CONFIG_STM32 is not set
++# CONFIG_ARCH_STI is not set
++# CONFIG_ARCH_ROCKCHIP is not set
++# CONFIG_TARGET_THUNDERX_88XX is not set
++# CONFIG_ARCH_ASPEED is not set
++CONFIG_SPL_GPIO_SUPPORT=y
++CONFIG_SPL_LIBCOMMON_SUPPORT=y
++CONFIG_SPL_LIBGENERIC_SUPPORT=y
++# CONFIG_SPL_MMC_SUPPORT is not set
++CONFIG_SPL_SERIAL_SUPPORT=y
++# CONFIG_SPL_DRIVERS_MISC_SUPPORT is not set
++# CONFIG_SPL_LIBDISK_SUPPORT is not set
++# CONFIG_SPL_NAND_SUPPORT is not set
++# CONFIG_SPL_SPI_FLASH_SUPPORT is not set
++# CONFIG_SPL_SPI_SUPPORT is not set
++# CONFIG_SPL_WATCHDOG_SUPPORT is not set
++CONFIG_IDENT_STRING=""
++# CONFIG_VIDEO is not set
++# CONFIG_SPL_FAT_SUPPORT is not set
++# CONFIG_CMD_DEKBLOB is not set
++# CONFIG_CMD_HDMIDETECT is not set
++
++#
++# ARM debug
++#
++# CONFIG_DEBUG_LL is not set
++# CONFIG_DEBUG_UART is not set
++
++#
++# General setup
++#
++CONFIG_LOCALVERSION=""
++CONFIG_LOCALVERSION_AUTO=y
++CONFIG_CC_OPTIMIZE_FOR_SIZE=y
++# CONFIG_DISTRO_DEFAULTS is not set
++# CONFIG_SYS_MALLOC_F is not set
++CONFIG_EXPERT=y
++CONFIG_SYS_MALLOC_CLEAR_ON_INIT=y
++# CONFIG_TOOLS_DEBUG is not set
++# CONFIG_PHYS_64BIT is not set
++
++#
++# Boot images
++#
++# CONFIG_ANDROID_BOOT_IMAGE is not set
++CONFIG_FIT=y
++CONFIG_FIT_ENABLE_SHA256_SUPPORT=y
++# CONFIG_FIT_VERBOSE is not set
++# CONFIG_FIT_BEST_MATCH is not set
++# CONFIG_SPL_FIT is not set
++# CONFIG_SPL_LOAD_FIT is not set
++# CONFIG_OF_BOARD_SETUP is not set
++# CONFIG_OF_SYSTEM_SETUP is not set
++# CONFIG_OF_STDOUT_VIA_ALIAS is not set
++CONFIG_SYS_EXTRA_OPTIONS=""
++CONFIG_ARCH_FIXUP_FDT_MEMORY=y
++
++#
++# API
++#
++# CONFIG_API is not set
++
++#
++# Boot timing
++#
++# CONFIG_BOOTSTAGE is not set
++CONFIG_BOOTSTAGE_USER_COUNT=20
++CONFIG_BOOTSTAGE_RECORD_COUNT=30
++CONFIG_BOOTSTAGE_STASH_ADDR=0
++CONFIG_BOOTSTAGE_STASH_SIZE=0x1000
++
++#
++# Boot media
++#
++# CONFIG_NAND_BOOT is not set
++# CONFIG_ONENAND_BOOT is not set
++# CONFIG_QSPI_BOOT is not set
++# CONFIG_SATA_BOOT is not set
++# CONFIG_SD_BOOT is not set
++# CONFIG_SPI_BOOT is not set
++CONFIG_BOOTDELAY=1
++# CONFIG_USE_BOOTARGS is not set
++
++#
++# Console
++#
++# CONFIG_CONSOLE_RECORD is not set
++# CONFIG_SILENT_CONSOLE is not set
++# CONFIG_PRE_CONSOLE_BUFFER is not set
++# CONFIG_CONSOLE_MUX is not set
++CONFIG_SYS_CONSOLE_IS_IN_ENV=y
++# CONFIG_SYS_CONSOLE_OVERWRITE_ROUTINE is not set
++# CONFIG_SYS_CONSOLE_ENV_OVERWRITE is not set
++# CONFIG_SYS_CONSOLE_INFO_QUIET is not set
++# CONFIG_SYS_STDIO_DEREGISTER is not set
++# CONFIG_FIT_EMBED is not set
++CONFIG_DEFAULT_FDT_FILE=""
++CONFIG_VERSION_VARIABLE=y
++CONFIG_DISPLAY_CPUINFO=y
++# CONFIG_DISPLAY_BOARDINFO is not set
++
++#
++# Start-up hooks
++#
++# CONFIG_ARCH_EARLY_INIT_R is not set
++CONFIG_ARCH_MISC_INIT=y
++CONFIG_BOARD_EARLY_INIT_F=y
++
++#
++# Security support
++#
++CONFIG_HASH=y
++
++#
++# SPL / TPL
++#
++CONFIG_SUPPORT_SPL=y
++CONFIG_SPL=y
++# CONFIG_SPL_BOARD_INIT is not set
++# CONFIG_SPL_BOOTROM_SUPPORT is not set
++CONFIG_SPL_RAW_IMAGE_SUPPORT=y
++CONFIG_SPL_LEGACY_IMAGE_SUPPORT=y
++# CONFIG_SPL_SYS_MALLOC_SIMPLE is not set
++# CONFIG_TPL_SYS_MALLOC_SIMPLE is not set
++# CONFIG_SPL_STACK_R is not set
++# CONFIG_SPL_SEPARATE_BSS is not set
++# CONFIG_SPL_DISPLAY_PRINT is not set
++# CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_SECTOR is not set
++# CONFIG_SYS_MMCSD_RAW_MODE_U_BOOT_USE_PARTITION is not set
++# CONFIG_SPL_CPU_SUPPORT is not set
++# CONFIG_SPL_CRYPTO_SUPPORT is not set
++# CONFIG_SPL_HASH_SUPPORT is not set
++# CONFIG_SPL_DMA_SUPPORT is not set
++# CONFIG_SPL_ENV_SUPPORT is not set
++# CONFIG_SPL_EXT_SUPPORT is not set
++# CONFIG_SPL_FPGA_SUPPORT is not set
++# CONFIG_SPL_I2C_SUPPORT is not set
++# CONFIG_SPL_MPC8XXX_INIT_DDR_SUPPORT is not set
++# CONFIG_SPL_MTD_SUPPORT is not set
++# CONFIG_SPL_MUSB_NEW_SUPPORT is not set
++# CONFIG_SPL_NET_SUPPORT is not set
++# CONFIG_SPL_NO_CPU_SUPPORT is not set
++# CONFIG_SPL_NOR_SUPPORT is not set
++# CONFIG_SPL_XIP_SUPPORT is not set
++# CONFIG_SPL_ONENAND_SUPPORT is not set
++# CONFIG_SPL_OS_BOOT is not set
++# CONFIG_SPL_PCI_SUPPORT is not set
++# CONFIG_SPL_PCH_SUPPORT is not set
++# CONFIG_SPL_POST_MEM_SUPPORT is not set
++# CONFIG_SPL_POWER_SUPPORT is not set
++# CONFIG_SPL_RAM_SUPPORT is not set
++# CONFIG_SPL_RTC_SUPPORT is not set
++# CONFIG_SPL_SATA_SUPPORT is not set
++# CONFIG_SPL_USB_HOST_SUPPORT is not set
++# CONFIG_SPL_USB_GADGET_SUPPORT is not set
++# CONFIG_SPL_YMODEM_SUPPORT is not set
++
++#
++# Command line interface
++#
++CONFIG_CMDLINE=y
++CONFIG_HUSH_PARSER=y
++CONFIG_SYS_PROMPT="=> "
++
++#
++# Autoboot options
++#
++CONFIG_AUTOBOOT=y
++# CONFIG_AUTOBOOT_KEYED is not set
++
++#
++# FASTBOOT
++#
++
++#
++# Commands
++#
++
++#
++# Info commands
++#
++CONFIG_CMD_BDI=y
++# CONFIG_CMD_CONFIG is not set
++CONFIG_CMD_CONSOLE=y
++# CONFIG_CMD_CPU is not set
++# CONFIG_CMD_LICENSE is not set
++
++#
++# Boot commands
++#
++CONFIG_CMD_BOOTD=y
++CONFIG_CMD_BOOTM=y
++CONFIG_CMD_BOOTZ=y
++# CONFIG_CMD_BOOTMENU is not set
++CONFIG_CMD_ELF=y
++CONFIG_CMD_FDT=y
++CONFIG_CMD_GO=y
++CONFIG_CMD_RUN=y
++CONFIG_CMD_IMI=y
++# CONFIG_CMD_IMLS is not set
++CONFIG_CMD_XIMG=y
++# CONFIG_CMD_POWEROFF is not set
++# CONFIG_CMD_SPL is not set
++# CONFIG_CMD_THOR_DOWNLOAD is not set
++# CONFIG_CMD_ZBOOT is not set
++
++#
++# Environment commands
++#
++# CONFIG_CMD_ASKENV is not set
++CONFIG_CMD_EXPORTENV=y
++CONFIG_CMD_IMPORTENV=y
++CONFIG_CMD_EDITENV=y
++# CONFIG_CMD_GREPENV is not set
++CONFIG_CMD_SAVEENV=y
++CONFIG_CMD_ENV_EXISTS=y
++# CONFIG_CMD_ENV_CALLBACK is not set
++# CONFIG_CMD_ENV_FLAGS is not set
++
++#
++# Memory commands
++#
++CONFIG_CMD_CRC32=y
++# CONFIG_CRC32_VERIFY is not set
++# CONFIG_CMD_EEPROM is not set
++# CONFIG_LOOPW is not set
++# CONFIG_CMD_MD5SUM is not set
++# CONFIG_CMD_MEMINFO is not set
++CONFIG_CMD_MEMORY=y
++# CONFIG_CMD_MEMTEST is not set
++# CONFIG_CMD_MX_CYCLIC is not set
++# CONFIG_CMD_SHA1SUM is not set
++# CONFIG_CMD_STRINGS is not set
++
++#
++# Compression commands
++#
++# CONFIG_CMD_LZMADEC is not set
++# CONFIG_CMD_UNZIP is not set
++# CONFIG_CMD_ZIP is not set
++
++#
++# Device access commands
++#
++# CONFIG_CMD_ARMFLASH is not set
++# CONFIG_CMD_CLK is not set
++# CONFIG_CMD_DFU is not set
++# CONFIG_CMD_FDC is not set
++# CONFIG_CMD_FLASH is not set
++CONFIG_CMD_FPGA=y
++# CONFIG_CMD_FPGA_LOADBP is not set
++# CONFIG_CMD_FPGA_LOADFS is not set
++# CONFIG_CMD_FPGA_LOADMK is not set
++# CONFIG_CMD_FPGA_LOADP is not set
++# CONFIG_CMD_FPGAD is not set
++# CONFIG_CMD_FUSE is not set
++CONFIG_CMD_GPIO=y
++# CONFIG_CMD_GPT is not set
++# CONFIG_CMD_IDE is not set
++# CONFIG_CMD_IO is not set
++# CONFIG_CMD_IOTRACE is not set
++# CONFIG_CMD_I2C is not set
++CONFIG_CMD_LOADB=y
++CONFIG_CMD_LOADS=y
++CONFIG_CMD_MMC=y
++CONFIG_CMD_NAND=y
++CONFIG_CMD_NAND_TRIMFFS=y
++# CONFIG_CMD_NAND_LOCK_UNLOCK is not set
++# CONFIG_CMD_NAND_TORTURE is not set
++# CONFIG_CMD_MMC_SPI is not set
++# CONFIG_CMD_ONENAND is not set
++# CONFIG_CMD_PART is not set
++# CONFIG_CMD_PCI is not set
++# CONFIG_CMD_PCMCIA is not set
++# CONFIG_CMD_READ is not set
++# CONFIG_CMD_SATA is not set
++# CONFIG_CMD_SAVES is not set
++# CONFIG_CMD_SDRAM is not set
++CONFIG_CMD_SF=y
++# CONFIG_CMD_SF_TEST is not set
++CONFIG_CMD_SPI=y
++# CONFIG_CMD_TSI148 is not set
++# CONFIG_CMD_UNIVERSE is not set
++# CONFIG_CMD_USB is not set
++# CONFIG_CMD_USB_SDP is not set
++# CONFIG_CMD_USB_MASS_STORAGE is not set
++
++#
++# Shell scripting commands
++#
++CONFIG_CMD_ECHO=y
++CONFIG_CMD_ITEST=y
++CONFIG_CMD_SOURCE=y
++CONFIG_CMD_SETEXPR=y
++
++#
++# Network commands
++#
++# CONFIG_CMD_NET is not set
++# CONFIG_CMD_TFTPPUT is not set
++# CONFIG_CMD_TFTPSRV is not set
++# CONFIG_CMD_RARP is not set
++# CONFIG_CMD_DHCP is not set
++# CONFIG_CMD_PXE is not set
++# CONFIG_CMD_NFS is not set
++# CONFIG_CMD_MII is not set
++# CONFIG_CMD_PING is not set
++# CONFIG_CMD_CDP is not set
++# CONFIG_CMD_SNTP is not set
++# CONFIG_CMD_DNS is not set
++# CONFIG_CMD_LINK_LOCAL is not set
++# CONFIG_CMD_ETHSW is not set
++
++#
++# Misc commands
++#
++# CONFIG_CMD_BSP is not set
++# CONFIG_CMD_BKOPS_ENABLE is not set
++CONFIG_CMD_CACHE=y
++# CONFIG_CMD_DISPLAY is not set
++# CONFIG_CMD_LED is not set
++CONFIG_CMD_DATE=y
++# CONFIG_CMD_TIME is not set
++# CONFIG_CMD_GETTIME is not set
++CONFIG_CMD_MISC=y
++# CONFIG_CMD_TIMER is not set
++# CONFIG_CMD_QFW is not set
++# CONFIG_CMD_TERMINAL is not set
++# CONFIG_CMD_UUID is not set
++
++#
++# Power commands
++#
++
++#
++# Security commands
++#
++# CONFIG_CMD_AES is not set
++# CONFIG_CMD_BLOB is not set
++# CONFIG_CMD_HASH is not set
++
++#
++# Firmware commands
++#
++
++#
++# Filesystem commands
++#
++# CONFIG_CMD_EXT2 is not set
++CONFIG_CMD_EXT4=y
++CONFIG_CMD_EXT4_WRITE=y
++CONFIG_CMD_FAT=y
++CONFIG_CMD_FS_GENERIC=y
++# CONFIG_CMD_FS_UUID is not set
++# CONFIG_CMD_JFFS2 is not set
++CONFIG_CMD_MTDPARTS=y
++CONFIG_MTDIDS_DEFAULT=""
++CONFIG_MTDPARTS_DEFAULT=""
++# CONFIG_CMD_MTDPARTS_SPREAD is not set
++# CONFIG_CMD_REISER is not set
++# CONFIG_CMD_SCSI is not set
++# CONFIG_CMD_ZFS is not set
++
++#
++# Debug commands
++#
++# CONFIG_CMD_BEDBUG is not set
++# CONFIG_CMD_DIAG is not set
++# CONFIG_CMD_KGDB is not set
++# CONFIG_CMD_TRACE is not set
++CONFIG_CMD_UBI=y
++CONFIG_CMD_UBIFS=y
++
++#
++# Partition Types
++#
++CONFIG_PARTITIONS=y
++# CONFIG_MAC_PARTITION is not set
++# CONFIG_SPL_MAC_PARTITION is not set
++CONFIG_DOS_PARTITION=y
++CONFIG_SPL_DOS_PARTITION=y
++# CONFIG_ISO_PARTITION is not set
++# CONFIG_SPL_ISO_PARTITION is not set
++# CONFIG_AMIGA_PARTITION is not set
++# CONFIG_SPL_AMIGA_PARTITION is not set
++# CONFIG_EFI_PARTITION is not set
++# CONFIG_SPL_EFI_PARTITION is not set
++# CONFIG_PARTITION_UUIDS is not set
++# CONFIG_SPL_PARTITION_UUIDS is not set
++CONFIG_SUPPORT_OF_CONTROL=y
++
++#
++# Device Tree Control
++#
++# CONFIG_OF_CONTROL is not set
++# CONFIG_OF_BOARD_FIXUP is not set
++
++#
++# Environment
++#
++# CONFIG_ENV_IS_NOWHERE is not set
++# CONFIG_ENV_IS_IN_DATAFLASH is not set
++# CONFIG_ENV_IS_IN_EEPROM is not set
++# CONFIG_ENV_IS_IN_FAT is not set
++# CONFIG_ENV_IS_IN_FLASH is not set
++CONFIG_ENV_IS_IN_MMC=y
++# CONFIG_ENV_IS_IN_NAND is not set
++# CONFIG_ENV_IS_IN_NVRAM is not set
++# CONFIG_ENV_IS_IN_ONENAND is not set
++# CONFIG_ENV_IS_IN_REMOTE is not set
++# CONFIG_ENV_IS_IN_SPI_FLASH is not set
++# CONFIG_ENV_IS_IN_UBI is not set
++# CONFIG_ENV_AES is not set
++# CONFIG_NET is not set
++
++#
++# Device Drivers
++#
++
++#
++# Generic Driver Options
++#
++# CONFIG_DM is not set
++CONFIG_DM_DEV_READ_INLINE=y
++# CONFIG_ADC is not set
++# CONFIG_ADC_EXYNOS is not set
++# CONFIG_ADC_SANDBOX is not set
++# CONFIG_SATA is not set
++
++#
++# SATA/SCSI device support
++#
++# CONFIG_BLOCK_CACHE is not set
++# CONFIG_IDE is not set
++
++#
++# Clock
++#
++# CONFIG_CPU is not set
++
++#
++# Hardware crypto devices
++#
++# CONFIG_FSL_CAAM is not set
++# CONFIG_SYS_FSL_SEC_BE is not set
++# CONFIG_SYS_FSL_SEC_LE is not set
++
++#
++# Demo for driver model
++#
++
++#
++# DFU support
++#
++
++#
++# DMA Support
++#
++# CONFIG_TI_EDMA3 is not set
++
++#
++# FPGA support
++#
++# CONFIG_FPGA_ALTERA is not set
++# CONFIG_FPGA_SOCFPGA is not set
++# CONFIG_FPGA_XILINX is not set
++
++#
++# GPIO Support
++#
++# CONFIG_CMD_PCA953X is not set
++# CONFIG_CMD_TCA642X is not set
++
++#
++# I2C support
++#
++# CONFIG_SYS_I2C_DW is not set
++# CONFIG_SYS_I2C_IMX_LPI2C is not set
++# CONFIG_CROS_EC_KEYB is not set
++
++#
++# LED Support
++#
++# CONFIG_LED_STATUS is not set
++
++#
++# Mailbox Controller Support
++#
++
++#
++# Memory Controller drivers
++#
++
++#
++# Multifunction device drivers
++#
++# CONFIG_CROS_EC is not set
++# CONFIG_DS4510 is not set
++# CONFIG_FSL_SEC_MON is not set
++# CONFIG_MXC_OCOTP is not set
++# CONFIG_NUVOTON_NCT6102D is not set
++# CONFIG_PCA9551_LED is not set
++# CONFIG_WINBOND_W83627 is not set
++
++#
++# MMC Host controller Support
++#
++CONFIG_MMC=y
++# CONFIG_SPL_MMC_TINY is not set
++# CONFIG_MMC_DW is not set
++# CONFIG_MMC_MXC is not set
++CONFIG_MMC_MXS=y
++# CONFIG_MMC_PCI is not set
++# CONFIG_MMC_OMAP_HS is not set
++# CONFIG_MMC_SDHCI is not set
++
++#
++# MTD Support
++#
++# CONFIG_MTD_NOR_FLASH is not set
++# CONFIG_NAND is not set
++
++#
++# SPI Flash Support
++#
++CONFIG_SPI_FLASH=y
++# CONFIG_SPI_FLASH_BAR is not set
++# CONFIG_SF_DUAL_FLASH is not set
++# CONFIG_SPI_FLASH_ATMEL is not set
++# CONFIG_SPI_FLASH_EON is not set
++# CONFIG_SPI_FLASH_GIGADEVICE is not set
++# CONFIG_SPI_FLASH_MACRONIX is not set
++# CONFIG_SPI_FLASH_SPANSION is not set
++# CONFIG_SPI_FLASH_STMICRO is not set
++CONFIG_SPI_FLASH_SST=y
++# CONFIG_SPI_FLASH_WINBOND is not set
++CONFIG_SPI_FLASH_USE_4K_SECTORS=y
++# CONFIG_SPI_FLASH_MTD is not set
++
++#
++# UBI support
++#
++CONFIG_MTD_UBI=y
++CONFIG_MTD_UBI_WL_THRESHOLD=4096
++CONFIG_MTD_UBI_BEB_LIMIT=20
++# CONFIG_MTD_UBI_FASTMAP is not set
++# CONFIG_BITBANGMII is not set
++# CONFIG_MV88E6352_SWITCH is not set
++# CONFIG_PHYLIB is not set
++# CONFIG_PCI is not set
++
++#
++# PHY Subsystem
++#
++# CONFIG_MVEBU_COMPHY_SUPPORT is not set
++
++#
++# Pin controllers
++#
++
++#
++# Power
++#
++
++#
++# Power Domain Support
++#
++# CONFIG_PMIC_AS3722 is not set
++# CONFIG_POWER_MC34VR500 is not set
++# CONFIG_PWM_SANDBOX is not set
++
++#
++# Remote Processor drivers
++#
++
++#
++# Reset Controller Support
++#
++
++#
++# Real Time Clock
++#
++# CONFIG_SCSI is not set
++
++#
++# Serial drivers
++#
++CONFIG_BAUDRATE=115200
++# CONFIG_DEBUG_UART_SKIP_INIT is not set
++# CONFIG_ATMEL_USART is not set
++# CONFIG_FSL_LPUART is not set
++# CONFIG_MVEBU_A3700_UART is not set
++# CONFIG_SYS_NS16550 is not set
++# CONFIG_PXA_SERIAL is not set
++
++#
++# Sound support
++#
++# CONFIG_SOUND is not set
++
++#
++# SPI Support
++#
++# CONFIG_SOFT_SPI is not set
++# CONFIG_FSL_ESPI is not set
++# CONFIG_FSL_QSPI is not set
++# CONFIG_TI_QSPI is not set
++# CONFIG_OMAP3_SPI is not set
++
++#
++# SPMI support
++#
++
++#
++# System reset device drivers
++#
++# CONFIG_SYSRESET_SYSCON is not set
++# CONFIG_SYSRESET_WATCHDOG is not set
++# CONFIG_DM_THERMAL is not set
++
++#
++# Timer Support
++#
++
++#
++# TPM support
++#
++# CONFIG_USB is not set
++
++#
++# Graphics support
++#
++# CONFIG_SYS_WHITE_ON_BLACK is not set
++
++#
++# TrueType Fonts
++#
++# CONFIG_VIDEO_VESA is not set
++# CONFIG_VIDEO_LCD_ANX9804 is not set
++# CONFIG_VIDEO_LCD_SSD2828 is not set
++# CONFIG_VIDEO_MVEBU is not set
++# CONFIG_LCD is not set
++
++#
++# Watchdog Timer Support
++#
++# CONFIG_BCM2835_WDT is not set
++# CONFIG_ULP_WATCHDOG is not set
++# CONFIG_PHYS_TO_BUS is not set
++
++#
++# File systems
++#
++# CONFIG_FS_CBFS is not set
++CONFIG_FS_FAT=y
++# CONFIG_FAT_WRITE is not set
++CONFIG_FS_FAT_MAX_CLUSTSIZE=65536
++# CONFIG_FS_JFFS2 is not set
++# CONFIG_FS_CRAMFS is not set
++# CONFIG_YAFFS2 is not set
++
++#
++# Library routines
++#
++# CONFIG_BCH is not set
++# CONFIG_CC_OPTIMIZE_LIBS_FOR_SPEED is not set
++CONFIG_HAVE_PRIVATE_LIBGCC=y
++CONFIG_USE_PRIVATE_LIBGCC=y
++CONFIG_SYS_HZ=1000
++# CONFIG_USE_TINY_PRINTF is not set
++CONFIG_REGEX=y
++# CONFIG_LIB_RAND is not set
++# CONFIG_SPL_TINY_MEMSET is not set
++# CONFIG_TPL_TINY_MEMSET is not set
++CONFIG_RBTREE=y
++# CONFIG_CMD_DHRYSTONE is not set
++
++#
++# Security support
++#
++# CONFIG_AES is not set
++# CONFIG_RSA is not set
++
++#
++# Hashing Support
++#
++CONFIG_SHA1=y
++CONFIG_SHA256=y
++# CONFIG_SHA_HW_ACCEL is not set
++CONFIG_MD5=y
++
++#
++# Compression Support
++#
++# CONFIG_LZ4 is not set
++# CONFIG_LZMA is not set
++CONFIG_LZO=y
++# CONFIG_ERRNO_STR is not set
++CONFIG_OF_LIBFDT=y
++# CONFIG_OF_LIBFDT_OVERLAY is not set
++# CONFIG_SPL_OF_LIBFDT is not set
++# CONFIG_FDT_FIXUP_PARTITIONS is not set
++
++#
++# System tables
++#
++# CONFIG_EFI_LOADER is not set
++# CONFIG_UNIT_TEST is not set
+diff --git a/include/common.h b/include/common.h
+index aaed131671..b34bafb14d 100644
+--- a/include/common.h
++++ b/include/common.h
+@@ -35,6 +35,8 @@ typedef volatile unsigned char	vu_char;
+ #include <flash.h>
+ #include <image.h>
+ 
++#define DEBUG 1
++
+ /* Bring in printf format macros if inttypes.h is included */
+ #define __STDC_FORMAT_MACROS
+ 
+diff --git a/include/configs/imx280a.h b/include/configs/imx280a.h
+new file mode 100644
+index 0000000000..b01aa39886
+--- /dev/null
++++ b/include/configs/imx280a.h
+@@ -0,0 +1,95 @@
++/*
++ * (C) Copyright 2011 Freescale Semiconductor, Inc.
++ * Author: Fabio Estevam <fabio.estevam@freescale.com>
++ *
++ * Based on m28evk.h:
++ * Copyright (C) 2011 Marek Vasut <marek.vasut@gmail.com>
++ * on behalf of DENX Software Engineering GmbH
++ *
++ * SPDX-License-Identifier:	GPL-2.0+
++ */
++#ifndef __CONFIGS_IMX280A_H__
++#define __CONFIGS_IMX280A_H__
++
++/* System configurations */
++#define CONFIG_MX28				/* i.MX28 SoC */
++#define CONFIG_MACH_TYPE	MACH_TYPE_IMX280A
++
++/* Memory configuration */
++#define CONFIG_NR_DRAM_BANKS		1		/* 1 bank of DRAM */
++#define PHYS_SDRAM_1			0x40000000	/* Base address */
++#define PHYS_SDRAM_1_SIZE		0x4000000	/* Max 64 MB RAM */
++#define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM_1
++
++/* Environment */
++#ifndef CONFIG_ENV_IS_IN_SPI_FLASH
++#define CONFIG_ENV_SIZE			(16 * 1024)
++#else
++#define CONFIG_ENV_SIZE			(4 * 1024)
++#endif
++#define CONFIG_ENV_OVERWRITE
++
++/* Environment is in MMC */
++#if defined(CONFIG_CMD_MMC) && defined(CONFIG_ENV_IS_IN_MMC)
++#define CONFIG_ENV_OFFSET		    (64 * 1024)    /* env offset is 64KB */
++#define CONFIG_SYS_MMC_ENV_DEV		0               /* env dev is 0 */
++#endif
++
++/* Environment is in NAND */
++#if defined(CONFIG_CMD_NAND) && defined(CONFIG_ENV_IS_IN_NAND)
++#define CONFIG_ENV_SIZE_REDUND		CONFIG_ENV_SIZE /* second env size */
++#define CONFIG_ENV_SECT_SIZE		(128 * 1024)
++#define CONFIG_ENV_RANGE		    (512 * 1024)
++#define CONFIG_ENV_OFFSET		    0x300000        /* env offset is 3MB */
++#define CONFIG_ENV_OFFSET_REDUND	\
++		(CONFIG_ENV_OFFSET + CONFIG_ENV_RANGE)      /* second env offset is 3MB+512KB */
++#endif
++
++/* UBI and NAND partitioning */
++#ifdef CONFIG_CMD_NAND
++#define CONFIG_MTD_DEVICE
++#define CONFIG_MTD_PARTITIONS
++#define MTDIDS_DEFAULT			"nand0=gpmi-nand"
++#define MTDPARTS_DEFAULT			\
++	"mtdparts=gpmi-nand:"			\
++		"3m(bootloader)ro,"		\
++		"512k(environment),"		\
++		"512k(redundant-environment),"	\
++		"10m(kernel),"			\
++		"512k(fdt),"			\
++		"20m(ramdisk),"			\
++		"-(filesystem)"
++#endif
++
++/* RTC */
++#ifdef  CONFIG_CMD_DATE
++#define CONFIG_RTC_MXS
++#endif
++
++/* Boot Linux */
++#define CONFIG_BOOTFILE		    "uImage"
++#define CONFIG_LOADADDR		    0x41ffffa0
++#define CONFIG_SYS_LOAD_ADDR	CONFIG_LOADADDR
++
++#if defined(CONFIG_CMD_MMC)
++#define CONFIG_EXTRA_ENV_SETTINGS   \
++    "mmc_args=setenv bootargs console=ttyAMA0,${baudrate} init=/sbin/init root=/dev/mmcblk0p3 rootwait rw"
++#define CONFIG_BOOTCOMMAND \
++    "run mmc_args; fatload mmc 0:1 ${loadaddr} ${bootfile}; "   \
++    "bootm ${loadaddr}"
++#elif defined(CONFIG_CMD_NAND)
++#define CONFIG_EXTRA_ENV_SETTINGS   \
++    "nand_args=setenv bootargs console=ttyAMA0,${baudrate} ubi.mtd=6 root=ubi0:rootfs rootfstype=ubifs " \
++    MTDPARTS_DEFAULT
++#define CONFIG_BOOTCOMMAND  \
++    "run nand_args; nand read ${loadaddr} 0x400000 0x600000; "   \
++    "bootm 0x41ffffa0"
++#else
++#define CONFIG_EXTRA_ENV_SETTINGS
++#define CONFIG_BOOTCOMMAND
++#endif
++
++/* The rest of the configuration is shared */
++#include <configs/mxs.h>
++
++#endif /* __CONFIGS_IMX280A_H__ */
+diff --git a/include/configs/mxs.h b/include/configs/mxs.h
+index 804b9e199c..1fedae1859 100644
+--- a/include/configs/mxs.h
++++ b/include/configs/mxs.h
+@@ -139,8 +139,8 @@
+ #ifdef CONFIG_CMD_NAND
+ #define CONFIG_NAND_MXS
+ #define CONFIG_SYS_MAX_NAND_DEVICE	1
+-#define CONFIG_SYS_NAND_BASE		0x60000000
+-#define CONFIG_SYS_NAND_5_ADDR_CYCLE
++#define CONFIG_SYS_NAND_BASE		0x8000C000
++#define CONFIG_SYS_NAND_4_ADDR_CYCLE
+ #endif
+ 
+ /* OCOTP */
+diff --git a/setenv.sh b/setenv.sh
+new file mode 100644
+index 0000000000..6b0b355a01
+--- /dev/null
++++ b/setenv.sh
+@@ -0,0 +1,7 @@
++#!/bin/bash
++
++export ARCH="arm"
++export CROSS_COMPILE="arm-fsl-linux-gnueabi-"
++export TOOL_CHAIN_DIR=/home/work/easyarm280/toolchain/arm-fsl-linux-gnueabi/bin/
++export PATH=$TOOL_CHAIN_DIR:$PATH
++
+-- 
+2.17.1
+
