@@ -1,0 +1,22 @@
+--- board/freescale/mx28evk/Kconfig	2020-06-20 16:26:00.216293100 +0800
++++ board/zlg/imx280a/Kconfig	2020-07-01 19:36:32.000000000 +0800
+@@ -1,15 +1,15 @@
+-if TARGET_MX28EVK
++if TARGET_IMX280A
+ 
+ config SYS_BOARD
+-	default "mx28evk"
++	default "imx280a"
+ 
+ config SYS_VENDOR
+-	default "freescale"
++	default "zlg"
+ 
+ config SYS_SOC
+ 	default "mxs"
+ 
+ config SYS_CONFIG_NAME
+-	default "mx28evk"
++	default "imx280a"
+ 
+ endif

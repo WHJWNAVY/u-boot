@@ -1,0 +1,11 @@
+--- board/freescale/mx28evk/Makefile	2020-07-01 22:26:16.720393400 +0800
++++ board/zlg/imx280a/Makefile	2020-07-01 19:36:32.000000000 +0800
+@@ -6,7 +6,7 @@
+ #
+ 
+ ifndef	CONFIG_SPL_BUILD
+-obj-y	:= mx28evk.o
++obj-y	:= imx280a.o
+ else
+ obj-y	:= iomux.o
+ endif
