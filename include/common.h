@@ -33,4 +33,8 @@
 # include <env_internal.h>
 #endif
 
+#ifdef CONFIG_EASYARM_280A
+#define DEBUG 1
+#endif
+
 #endif	/* __COMMON_H_ */

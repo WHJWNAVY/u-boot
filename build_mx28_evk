@@ -28,9 +28,9 @@ build_uboot() {
 
 build_uboot_sb() {
     echo "Do elftosb ..."
-    elftosb -zf imx28 -c arch/arm/cpu/arm926ejs/mxs/u-boot-imx28.bd -o u-boot.sb
-    echo "Do mxsboot ..."
-    ./tools/mxsboot sd u-boot.sb u-boot.sd
+    elftosb -f imx28 -c arch/arm/cpu/arm926ejs/mxs/u-boot-imx28.bd -o u-boot.sb
+    #echo "Do mxsboot ..."
+    #./tools/mxsboot sd u-boot.sb u-boot.sd
 }
 
 read sel
