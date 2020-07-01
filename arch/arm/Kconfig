@@ -384,6 +384,12 @@ config TARGET_MX28EVK
 	select SUPPORT_SPL
 	select BOARD_EARLY_INIT_F
 
+config TARGET_IMX280A
+	bool "Support imx280a"
+	select CPU_ARM926EJS
+	select SUPPORT_SPL
+	select BOARD_EARLY_INIT_F
+
 config TARGET_MX23_OLINUXINO
 	bool "Support mx23_olinuxino"
 	select CPU_ARM926EJS
@@ -1205,6 +1211,7 @@ source "board/freescale/ls1012afrdm/Kconfig"
 source "board/freescale/mx23evk/Kconfig"
 source "board/freescale/mx25pdk/Kconfig"
 source "board/freescale/mx28evk/Kconfig"
+source "board/zlg/imx280a/Kconfig"
 source "board/freescale/mx31ads/Kconfig"
 source "board/freescale/mx31pdk/Kconfig"
 source "board/freescale/mx35pdk/Kconfig"
