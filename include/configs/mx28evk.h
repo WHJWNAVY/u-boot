@@ -18,7 +18,11 @@
 /* Memory configuration */
 #define CONFIG_NR_DRAM_BANKS		1		/* 1 bank of DRAM */
 #define PHYS_SDRAM_1			0x40000000	/* Base address */
+#if 0 /*CONFIG_IMX280A*/
 #define PHYS_SDRAM_1_SIZE		0x40000000	/* Max 1 GB RAM */
+#else
+#define PHYS_SDRAM_1_SIZE		0x04000000	/* Max 64 MB RAM */
+#endif
 #define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM_1
 
 /* Environment */
@@ -77,6 +81,14 @@
 #ifdef	CONFIG_CMD_NET
 #define CONFIG_FEC_MXC
 #define CONFIG_MX28_FEC_MAC_IN_OCOTP
+
+#if 1 /*CONFIG_IMX280A*/
+#define CONFIG_IPADDR           192.168.1.101
+#define CONFIG_SERVERIP         192.168.1.100
+#define CONFIG_GATEWAYIP        192.168.1.1
+#define CONFIG_NETMASK          255.255.255.0
+#endif
+
 #endif
 
 /* RTC */

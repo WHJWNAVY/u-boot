@@ -48,12 +48,13 @@ int board_early_init_f(void)
 	gpio_direction_output(MX28_PAD_AUART2_RX__GPIO_3_8, 1);
 #endif
 
+#if 0 /*CONFIG_IMX280A*/
 	/* Power on LCD */
 	gpio_direction_output(MX28_PAD_LCD_RESET__GPIO_3_30, 1);
 
 	/* Set contrast to maximum */
 	gpio_direction_output(MX28_PAD_PWM2__GPIO_3_18, 1);
-
+#endif
 	return 0;
 }
 
@@ -109,7 +110,7 @@ int board_eth_init(bd_t *bis)
 	/* MX28EVK uses ENET_CLK PAD to drive FEC clock */
 	writel(CLKCTRL_ENET_TIME_SEL_RMII_CLK | CLKCTRL_ENET_CLK_OUT_EN,
 	       &clkctrl_regs->hw_clkctrl_enet);
-
+#if 0 // TODO: CONFIG_IMX280A
 	/* Power-on FECs */
 	gpio_direction_output(MX28_PAD_SSP1_DATA3__GPIO_2_15, 0);
 
@@ -117,31 +118,38 @@ int board_eth_init(bd_t *bis)
 	gpio_direction_output(MX28_PAD_ENET0_RX_CLK__GPIO_4_13, 0);
 	udelay(200);
 	gpio_set_value(MX28_PAD_ENET0_RX_CLK__GPIO_4_13, 1);
-
+#else
+	/* Reset FEC PHYs */
+	gpio_direction_output(MX28_PAD_LCD_RS__GPIO_1_26, 0);
+	udelay(200);
+	gpio_set_value(MX28_PAD_LCD_RS__GPIO_1_26, 1);
+#endif
 	ret = fecmxc_initialize_multi(bis, 0, 0, MXS_ENET0_BASE);
 	if (ret) {
 		puts("FEC MXS: Unable to init FEC0\n");
 		return ret;
 	}
 
+#if 0 /*CONFIG_IMX280A*/
 	ret = fecmxc_initialize_multi(bis, 1, 3, MXS_ENET1_BASE);
 	if (ret) {
 		puts("FEC MXS: Unable to init FEC1\n");
 		return ret;
 	}
+#endif
 
 	dev = eth_get_dev_by_name("FEC0");
 	if (!dev) {
 		puts("FEC MXS: Unable to get FEC0 device entry\n");
 		return -EINVAL;
 	}
-
+#if 0 /*CONFIG_IMX280A*/
 	dev = eth_get_dev_by_name("FEC1");
 	if (!dev) {
 		puts("FEC MXS: Unable to get FEC1 device entry\n");
 		return -EINVAL;
 	}
-
+#endif
 	return ret;
 }
 
