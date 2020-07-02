@@ -1,0 +1,73 @@
+U-Boot 2017.09-g2eb722e (Jul 03 2020 - 02:26:40 +0800)
+
+CPU:   Freescale i.MX28 rev1.2 at 454 MHz
+BOOT:  SSP SD/MMC #0, 3V3
+SPI:   ready
+DRAM:  64 MiB
+No arch specific invalidate_icache_all available!
+NAND:  128 MiB
+MMC:   MXS MMC: 0
+*** Warning - bad CRC, using default environment
+
+In:    serial
+Out:   serial
+Err:   serial
+Net:   FEC0 [PRIME]
+Hit any key to stop autoboot:  0 
+zlg@imx280a# bdinfo 
+arch_number = 0x000009E3
+boot_params = 0x40000100
+DRAM bank   = 0x00000000
+-> start    = 0x40000000
+-> size     = 0x04000000
+eth0name    = FEC0
+ethaddr     = 00:04:29:2a:ae:02
+current eth = FEC0
+ip_addr     = 192.168.1.101
+baudrate    = 115200 bps
+TLB addr    = 0x43FF0000
+relocaddr   = 0x43F20000
+reloc off   = 0x03F1E000
+irq_sp      = 0x43B1BEF0
+sp start    = 0x43B1BEE0
+zlg@imx280a# mmcinfo 
+Device: MXS MMC
+Manufacturer ID: 82
+OEM: 4a54
+Name: NCard 
+Tran Speed: 50000000
+Rd Block Len: 512
+SD version 3.0
+High Capacity: Yes
+Capacity: 7.5 GiB
+Bus Width: 4-bit
+Erase Group Size: 512 Bytes
+zlg@imx280a# nand info
+
+Device 0: nand0, sector size 128 KiB
+  Page size       2048 b
+  OOB size          64 b
+  Erase size    131072 b
+  subpagesize     2048 b
+  options     0x00000200
+  bbt options 0x00008000
+zlg@imx280a# fatinfo mmc 0
+Interface:  MMC
+  Device 0: Vendor: Man 000082 Snr 00595500 Rev: 10.2 Prod: NCard
+            Type: Removable Hard Disk
+            Capacity: 7695.0 MB = 7.5 GB (15759360 x 512)
+Filesystem: FAT32 ""
+zlg@imx280a# ls mmc 0     
+            system volume information/
+
+0 file(s), 1 dir(s)
+
+zlg@imx280a# ping 192.168.1.100
+Using FEC0 device
+host 192.168.1.100 is alive
+zlg@imx280a# version 
+U-Boot 2017.09-g2eb722e (Jul 03 2020 - 02:26:40 +0800)
+
+arm-926ejs-linux-gnueabi-gcc (crosstool-NG 1.24.0.105_5659366) 9.2.0
+GNU ld (crosstool-NG 1.24.0.105_5659366) 2.34
+zlg@imx280a# 
