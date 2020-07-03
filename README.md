@@ -6,7 +6,7 @@
 $ sudo ./install_build_package.sh
 ```
 
-## [install_build_package.sh](.\install_build_package.sh)
+## [install_build_package.sh](.\patch-imx280a\install_build_package.sh)
 
 ```bash
 #!/bin/sh
@@ -46,7 +46,7 @@ echo "Package install over, See log at $install_log"
 
 > [crosstool-NG](http://crosstool-ng.github.io/)是一个神器，专门用来编译生成自己的gcc工具链，我就是用`crosstool-ng`自己编译的最新版(`9.2.0`)的`arm-926ejs-linux-gnueabi-gcc`，具体编译方法参考另一篇文档:
 
-## [crosstool-ng-armv5te-arm926ejs-build.pdf](.\crosstool-ng-armv5te-arm926ejs-build.pdf)
+## [crosstool-ng-armv5te-arm926ejs-build.pdf](.\patch-imx280a\crosstool-ng-armv5te-arm926ejs-build.pdf)
 
 
 
@@ -62,7 +62,7 @@ $ ./build.sh
 ```
 
 
-## [0001-u-boot-2020.07-rc4_port_for_easyarm_imx280a.patch](.\0001-u-boot-2020.07-rc4_port_for_easyarm_imx280a.patch)
+## [0001-u-boot-2020.07-rc4_port_for_easyarm_imx280a.patch](.\patch-imx280a\0001-u-boot-2020.07-rc4_port_for_easyarm_imx280a.patch)
 
 ```diff
 From 2f9791cb2a8ff763c850a82f1e51f8c575ed8abc Mon Sep 17 00:00:00 2001
