@@ -15,7 +15,11 @@
 
 /* Memory configuration */
 #define PHYS_SDRAM_1			0x40000000	/* Base address */
+#if 0 /*CONFIG_IMX280A*/
 #define PHYS_SDRAM_1_SIZE		0x40000000	/* Max 1 GB RAM */
+#else
+#define PHYS_SDRAM_1_SIZE		0x04000000	/* Max 64 MB RAM */
+#endif
 #define CONFIG_SYS_SDRAM_BASE		PHYS_SDRAM_1
 
 /* Environment */

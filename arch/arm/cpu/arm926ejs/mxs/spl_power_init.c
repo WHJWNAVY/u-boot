@@ -751,8 +751,9 @@ static void mxs_batt_boot(void)
 	clrsetbits_le32(&power_regs->hw_power_5vctrl,
 		POWER_5VCTRL_CHARGE_4P2_ILIMIT_MASK,
 		0x8 << POWER_5VCTRL_CHARGE_4P2_ILIMIT_OFFSET);
-
+#if 0 /*CONFIG_IMX280A*/
 	mxs_power_enable_4p2();
+#endif
 }
 
 /**
@@ -1244,7 +1245,9 @@ void mxs_power_init(void)
 	mxs_ungate_power();
 
 	mxs_power_clock2xtal();
+#if 0 /*CONFIG_IMX280A*/
 	mxs_power_set_auto_restart();
+#endif
 	mxs_power_set_linreg();
 	mxs_power_setup_5v_detect();
 

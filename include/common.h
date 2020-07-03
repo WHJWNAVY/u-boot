@@ -33,4 +33,6 @@
 # include <env_internal.h>
 #endif
 
+//#define DEBUG 1
+
 #endif	/* __COMMON_H_ */
