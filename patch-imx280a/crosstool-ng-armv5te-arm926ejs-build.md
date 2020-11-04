@@ -25,6 +25,7 @@ $ ct-ng list-samples
 
 ```bash
 $ mkdir armv5te-arm926ejs-build
+$ cd armv5te-arm926ejs-build
 $ ct-ng arm-unknown-linux-gnueabi
 $ ct-ng menuconfig
 ```
